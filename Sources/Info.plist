@@ -25,6 +25,10 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_googlecast._tcp</string>
+	</array>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Para encontrar y controlar tu TV en la red Wi-Fi.</string>
 	<key>UILaunchScreen</key>

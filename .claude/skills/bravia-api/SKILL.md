@@ -47,7 +47,17 @@ El cuerpo es un sobre SOAP con `<IRCCCode>…</IRCCCode>`; está en `TV.soap(_:)
 
 Nombres habituales: `Up Down Left Right Confirm Return Home Input Mute VolumeUp VolumeDown ChannelUp ChannelDown Num0…Num9 Options Display Guide (EPG) Hdmi1…Hdmi4 Netflix ActionMenu Play Pause Stop Forward Rewind Prev Next TvPower PowerOff`.
 
-## Descubrimiento (SSDP)
+## Descubrimiento (implementado en `Sources/Discovery.swift`)
+No necesita el entitlement de multicast. Ya está probado con una TV real.
+- **Bonjour** `_googlecast._tcp` con `NWBrowser`. Tiene que estar en `NSBonjourServices`.
+  El TXT `fn` trae el nombre que el usuario puso a la TV. Para sacar la IP se abre
+  una `NWConnection` IPv4 y se lee `remoteEndpoint`.
+- **Barrido** de la subred /24 de `en0`, con `POST /sony/system getInterfaceInformation`.
+  No pide autenticación y devuelve `productCategory: "tv"` y `modelName`.
+- Toda IP candidata se confirma con `getInterfaceInformation`, así que los Chromecast
+  que no son BRAVIA quedan fuera.
+
+## SSDP (descartado; solo como referencia)
 UDP multicast a `239.255.255.250:1900`:
 ```
 M-SEARCH * HTTP/1.1
