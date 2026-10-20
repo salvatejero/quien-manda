@@ -46,8 +46,11 @@ endpoints, la autenticación, los formatos y las trampas conocidas.
 - Cada funcionalidad nueva lleva antes una issue `enhancement` y cada bug una issue
   `bug` (con `gh`, a través de `git-ops`). Los commits la referencian con `#N`.
 - **Git flow:** `main` es la rama de las releases y `develop` la de integración.
-  Cada trabajo va en `feature/<nombre>`, que sale de `develop` y vuelve con
-  `git flow feature finish` (merge `--no-ff`). Los bugs urgentes van en `hotfix/*`
+  Cada trabajo va en `feature/<nombre>`, que sale de `develop`
+  (`git flow feature start <nombre>`). Para cerrarla **no** se usa
+  `git flow feature finish`: la versión instalada (git-flow 0.4.1) hace fast-forward
+  si la rama tiene un solo commit. Se cierra con
+  `git checkout develop && git merge --no-ff feature/<nombre> && git branch -d feature/<nombre>`. Los bugs urgentes van en `hotfix/*`
   y las versiones en `release/x.y.z`, con tag en `main`. Nunca se commitea
   directamente en `main` ni en `develop`.
 - **El repo es público.** Nunca se commitean secretos, `.env`, certificados ni
