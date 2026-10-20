@@ -1,0 +1,26 @@
+# Generado por xcodegen (fuente de verdad: project.yml)
+*.xcodeproj/
+
+# Build y Xcode
+/build/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+
+# Secretos — repo público: nunca se suben
+.env
+.env.*
+*.xcconfig.local
+Secrets.xcconfig
+*.p8
+*.p12
+*.cer
+*.mobileprovision
+*.provisionprofile
+AuthKey_*
+GoogleService-Info.plist
+
+# Local de Claude
+.claude/settings.local.json
+
+.DS_Store
