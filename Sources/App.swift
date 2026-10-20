@@ -9,6 +9,7 @@ struct SonyMandoApp: App {
 
 struct RootView: View {
     @State private var tv = TV()
+    @State private var discovery = Discovery()
     @AppStorage("ip") private var ip = ""
     @AppStorage("psk") private var psk = ""
     @State private var pin = ""
@@ -31,9 +32,32 @@ struct RootView: View {
         NavigationStack {
             Form {
                 Section {
+                    ForEach(discovery.tvs) { found in
+                        Button {
+                            ip = found.ip
+                            Task { await connect() }
+                        } label: {
+                            LabeledContent(found.name, value: found.ip)
+                        }
+                    }
+                    if discovery.isScanning {
+                        HStack { ProgressView(); Text("Buscando…").foregroundStyle(.secondary) }
+                    } else if discovery.tvs.isEmpty {
+                        Text("No se ha encontrado ninguna TV").foregroundStyle(.secondary)
+                    }
+                } header: {
+                    HStack {
+                        Text("TVs en tu red")
+                        Spacer()
+                        Button("Buscar", action: discovery.start).disabled(discovery.isScanning)
+                    }
+                }
+                Section {
                     TextField("IP de la TV (p. ej. 192.0.2.20)", text: $ip)
                         .keyboardType(.decimalPad)
                     SecureField("Pre-Shared Key (opcional)", text: $psk)
+                } header: {
+                    Text("O escribe la IP")
                 } footer: {
                     Text("iPhone y TV en la misma Wi-Fi. Sin PSK, la TV mostrará un PIN.")
                 }
@@ -47,6 +71,8 @@ struct RootView: View {
                 if let error { Text(error).foregroundStyle(.red) }
             }
             .navigationTitle("Conectar TV")
+            .onAppear(perform: discovery.start)
+            .onDisappear(perform: discovery.stop)
         }
     }
 

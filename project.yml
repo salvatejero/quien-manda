@@ -21,6 +21,7 @@ targets:
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         UISupportedInterfaceOrientations~ipad: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight, UIInterfaceOrientationPortraitUpsideDown]
         NSLocalNetworkUsageDescription: Para encontrar y controlar tu TV en la red Wi-Fi.
+        NSBonjourServices: [_googlecast._tcp]
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
     settings:

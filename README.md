@@ -18,7 +18,7 @@ xcodebuild test -project SonyMando.xcodeproj -scheme SonyMando \
 ```
 
 ## Uso
-1. Escribe la IP de la TV (está en **Ajustes → Red → Estado de la red**).
+1. Toca tu TV en "TVs en tu red". Si no aparece, escribe su IP (está en **Ajustes → Red → Estado de la red**).
 2. Si configuraste una Pre-Shared Key en la TV, ponla aquí. Si no, deja el campo
    vacío, pulsa "Conectar" y escribe el PIN que aparece en la TV.
 3. La app recuerda la IP y vuelve a conectarse sola al abrirla.
@@ -33,7 +33,8 @@ xcodebuild test -project SonyMando.xcodeproj -scheme SonyMando \
 | Volumen ± / silencio / canal ± / entrada | ✅ MVP |
 | Encender y apagar (`setPowerStatus`) | ✅ MVP |
 | Diseño de iPad (escalado ×1,6) | ✅ MVP |
-| Búsqueda automática (SSDP) | ⏳ pendiente del entitlement de multicast de Apple |
+| Autodetección: Bonjour `_googlecast._tcp` + barrido de la subred /24 | ✅ probada con TV real (encontró "Tele") |
+| Búsqueda por SSDP | ❌ descartada: necesita el entitlement de multicast y Bonjour + barrido ya lo cubren |
 | TouchPad, teclado de texto, háptica configurable | ⏳ fase 2 |
 | Historial, reconexión, Force Mode, onboarding | ⏳ fase 3 |
 | Function Keys, Shortcuts de apps, varias TVs, estado de la TV | ⏳ fase 4 |

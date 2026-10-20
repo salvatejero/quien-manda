@@ -58,7 +58,10 @@ endpoints, la autenticación, los formatos y las trampas conocidas.
   que no se sube. Se añade con `git add <ficheros>` concretos y se revisa el diff
   staged antes de cada commit.
 - El autor de los commits es el email noreply de GitHub, configurado solo en este repo.
-- El remoto todavía no existe; es solo local. Cuando se cree: `gh repo create --public`.
+- **Sin remoto hasta tener el MVP terminado** (probado en una TV real). Hasta
+  entonces no hay push ni issues de GitHub, y las features y bugs se apuntan en
+  el "Estado" del README. Al publicar: `gh repo create --public` y se abren las
+  issues de lo ya hecho, citando sus commits.
 - Al terminar una funcionalidad: tests en verde y una línea actualizada en el
   "Estado" del README.
 - Cada lógica no trivial lleva un test pequeño en `Tests/`. La UI se prueba a mano
