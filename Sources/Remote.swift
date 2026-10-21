@@ -443,18 +443,34 @@ struct Monogram: View {
     let size: CGFloat
     var icon: URL?
     @Environment(\.k) private var k
+    @State private var image: UIImage?
+
     var body: some View {
-        AsyncImage(url: icon) { image in
-            image.resizable().scaledToFill()
-        } placeholder: {
-            Text(name.prefix(1))
-                .font(.display(size * 0.45 * k))
-                .foregroundStyle(Color.s100)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.ink)
+        Group {
+            if let image {
+                Image(uiImage: image).resizable().scaledToFill()
+            } else {
+                Text(name.prefix(1))
+                    .font(.display(size * 0.45 * k))
+                    .foregroundStyle(Color.s100)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.ink)
+            }
         }
         .frame(width: size * k, height: size * k)
         .clipShape(.rect(cornerRadius: 8 * k))
+        .task(id: icon) { image = await Self.load(icon) }
+    }
+
+    private static var cache: [URL: UIImage] = [:]
+
+    /// La TV responde "Content-Type: Content-Type: image/png" y AsyncImage lo descarta: se decodifica a mano.
+    private static func load(_ url: URL?) async -> UIImage? {
+        guard let url else { return nil }
+        if let cached = cache[url] { return cached }
+        guard let (data, _) = try? await URLSession.shared.data(from: url), let image = UIImage(data: data) else { return nil }
+        cache[url] = image
+        return image
     }
 }
 
