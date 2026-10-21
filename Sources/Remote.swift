@@ -502,8 +502,8 @@ struct SettingsView: View {
 
     var body: some View {
         let apps = PanelApp.decode(raw)
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16 * k) {
+        List {
+            Group {
                 HStack(spacing: 8 * k) {
                     Button(action: onBack) { Image(systemName: "chevron.left") }
                         .buttonStyle(KeyStyle(kind: .ghost))
@@ -523,37 +523,41 @@ struct SettingsView: View {
 
                 VStack(alignment: .leading, spacing: 0) {
                     Text("Apps del panel").font(.system(size: 17 * k, weight: .semibold))
-                    Text("Activa las que quieras y ordénalas con la flecha.").font(.system(size: 13 * k)).foregroundStyle(Color.muted)
+                    Text("Activa las que quieras y arrástralas para ordenarlas.").font(.system(size: 13 * k)).foregroundStyle(Color.muted)
                 }
-
-                VStack(spacing: 8 * k) {
-                    ForEach(apps.indices, id: \.self) { i in
-                        HStack(spacing: 8 * k) {
-                            Monogram(name: apps[i].name, size: 36, icon: tv.icon(apps[i].name))
-                            Text(apps[i].name).font(.system(size: 15 * k, weight: .semibold)).frame(maxWidth: .infinity, alignment: .leading)
-                            Button {
-                                var list = apps
-                                list.swapAt(i, i - 1)
-                                raw = PanelApp.encode(list)
-                            } label: { Image(systemName: "chevron.up") }
-                                .buttonStyle(KeyStyle(kind: .ghost))
-                                .frame(width: 44 * k, height: 44 * k)
-                                .disabled(i == 0)
-                                .accessibilityLabel("Subir \(apps[i].name)")
-                            Toggle("Mostrar \(apps[i].name)", isOn: Binding(get: { apps[i].on }, set: { on in
-                                var list = apps
-                                list[i].on = on
-                                raw = PanelApp.encode(list)
-                            }))
-                            .labelsHidden()
-                        }
-                        .padding(EdgeInsets(top: 6 * k, leading: 12 * k, bottom: 6 * k, trailing: 8 * k))
-                        .modifier(Card(radius: 8))
-                    }
-                }
+                .padding(.top, 8 * k)
             }
-            .padding(EdgeInsets(top: 20 * k, leading: 20 * k, bottom: 24 * k, trailing: 20 * k))
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+            .listRowInsets(EdgeInsets(top: 8 * k, leading: 20 * k, bottom: 8 * k, trailing: 20 * k))
+
+            ForEach(apps, id: \.name) { app in
+                HStack(spacing: 12 * k) {
+                    Monogram(name: app.name, size: 36, icon: tv.icon(app.name))
+                    Text(app.name).font(.system(size: 15 * k, weight: .semibold)).frame(maxWidth: .infinity, alignment: .leading)
+                    Toggle("Mostrar \(app.name)", isOn: Binding(get: { app.on }, set: { on in
+                        raw = PanelApp.encode(apps.map { $0.name == app.name ? PanelApp(name: $0.name, on: on) : $0 })
+                    }))
+                    .labelsHidden()
+                }
+                .padding(.vertical, 4 * k)
+                .listRowInsets(EdgeInsets(top: 4 * k, leading: 32 * k, bottom: 4 * k, trailing: 20 * k))
+                .listRowSeparator(.hidden)
+                .listRowBackground(
+                    RoundedRectangle(cornerRadius: 8 * k).fill(Color.s200)
+                        .overlay(RoundedRectangle(cornerRadius: 8 * k).strokeBorder(Color.line))
+                        .padding(EdgeInsets(top: 4 * k, leading: 20 * k, bottom: 4 * k, trailing: 20 * k))
+                )
+            }
+            .onMove { from, to in
+                var list = apps
+                list.move(fromOffsets: from, toOffset: to)
+                raw = PanelApp.encode(list)
+            }
         }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .environment(\.editMode, .constant(.active)) // asas de arrastre siempre visibles
         .tint(Color.verde)
         .foregroundStyle(Color.ink)
         .background(Color.s100)
