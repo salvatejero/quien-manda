@@ -27,7 +27,7 @@ xcodebuild test -project SonyMando.xcodeproj -scheme SonyMando \
 
 | Funcionalidad | Estado |
 |---|---|
-| Conexión por IP manual + PSK / PIN | ✅ MVP (sin probar con TV real) |
+| Conexión por IP manual + PSK / PIN | ✅ PIN probado con TV real (BRAVIA 4K UR3); PSK incorrecta se detecta al conectar |
 | Cruceta, OK, Atrás, Inicio | ✅ MVP |
 | Números 0–9 | ✅ MVP |
 | Volumen ± / silencio / canal ± / entrada | ✅ MVP |
