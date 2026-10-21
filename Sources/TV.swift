@@ -1,4 +1,5 @@
 import Foundation
+import Security
 
 /// Cliente BRAVIA: JSON-RPC (/sony/*) + teclas IRCC por SOAP.
 /// Auth: PSK (cabecera X-Auth-PSK) o PIN (actRegister → cookie "auth", que URLSession guarda sola).
@@ -24,18 +25,29 @@ final class TV {
     private(set) var model = ""
     private(set) var isOn = true
     private(set) var apps: [Any]?
+    /// Cookie "auth" del registro por PIN. Va en el llavero (por IP) y se envía a mano.
+    private var auth: String?
     /// Modo demo (`-screen` al lanzar): finge una TV con todas las teclas y no toca la red.
     var demo = false { didSet { if demo { model = "KD-55XH8096" } } }
 
     var isConnected: Bool { !codes.isEmpty }
 
-    /// Con PSK basta con leer los códigos; sin PSK hace falta registrarse (la 1ª vez sin PIN, la TV lo muestra).
+    /// Con PSK basta con leer los códigos. Sin PSK: si hay cookie guardada se usa tal cual (directo al mando);
+    /// si no la hay, o caducó, se registra (sin PIN la TV lo muestra; con PIN guarda la cookie nueva).
     func connect(pin: String? = nil) async throws {
-        if psk.isEmpty { try await register(pin: pin) }
+        auth = psk.isEmpty ? Keychain.load(ip) : nil
+        if psk.isEmpty && (auth == nil || pin != nil) { try await register(pin: pin) }
         // getRemoteControllerInfo responde sin autenticar; esto no, así que confirma que la TV aceptará las teclas.
         let info: [Any]
         do { info = try await call("system", "getSystemInformation") }
-        catch Failure.http(401), Failure.http(403) { throw psk.isEmpty ? Failure.needsPin : Failure.badPSK }
+        catch Failure.http(401), Failure.http(403) {
+            guard psk.isEmpty else { throw Failure.badPSK }
+            // Cookie caducada: se pide otra (la TV mostrará un PIN si ya no reconoce al cliente).
+            Keychain.save(nil, ip)
+            auth = nil
+            try await register(pin: nil)
+            info = try await call("system", "getSystemInformation")
+        }
         model = (info.first as? [String: Any])?["model"] as? String ?? "BRAVIA"
         isOn = (try? await powerIsActive()) ?? true
         apps = nil
@@ -101,39 +113,51 @@ final class TV {
         ]
         var extra: [String: String] = [:]
         if let pin { extra["Authorization"] = "Basic " + Data(":\(pin)".utf8).base64EncodedString() }
+        let response: HTTPURLResponse
         do {
-            _ = try await call("accessControl", "actRegister", params: params, headers: extra)
+            (_, response) = try await rpc("accessControl", "actRegister", params: params, headers: extra)
         } catch Failure.http(401) {
             throw Failure.needsPin
         }
+        if let cookie = Self.authCookie(response) {
+            auth = cookie
+            Keychain.save(cookie, ip)
+        }
     }
 
-    private func call(_ service: String, _ method: String, params: [Any] = [], headers: [String: String] = [:]) async throws -> [Any] {
+    private func call(_ service: String, _ method: String, params: [Any] = []) async throws -> [Any] {
+        try await rpc(service, method, params: params).result
+    }
+
+    private func rpc(_ service: String, _ method: String, params: [Any] = [], headers: [String: String] = [:]) async throws -> (result: [Any], response: HTTPURLResponse) {
         var request = request(service)
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         headers.forEach { request.setValue($1, forHTTPHeaderField: $0) }
         request.httpBody = try JSONSerialization.data(withJSONObject: ["method": method, "params": params, "id": 1, "version": "1.0"])
-        let data = try await send(request)
+        let (data, response) = try await send(request)
         let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
         if let error = json?["error"] as? [Any], let code = error.first as? Int { throw Failure.http(code) }
-        return json?["result"] as? [Any] ?? []
+        return (json?["result"] as? [Any] ?? [], response)
     }
 
     private func request(_ service: String) -> URLRequest {
         var request = URLRequest(url: URL(string: "http://\(ip)/sony/\(service)")!, timeoutInterval: 5)
         request.httpMethod = "POST"
+        request.httpShouldHandleCookies = false // la cookie la gestionamos nosotros (llavero)
         if !psk.isEmpty { request.setValue(psk, forHTTPHeaderField: "X-Auth-PSK") }
+        if let auth { request.setValue("auth=\(auth)", forHTTPHeaderField: "Cookie") }
         return request
     }
 
     @discardableResult
-    private func send(_ request: URLRequest) async throws -> Data {
+    private func send(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
         let (data, response): (Data, URLResponse)
         do { (data, response) = try await URLSession.shared.data(for: request, delegate: NoAuthRetry()) }
         catch URLError.cancelled { throw Failure.http(401) }
-        let status = (response as? HTTPURLResponse)?.statusCode ?? 0
-        guard status == 200 else { throw Failure.http(status) }
-        return data
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+            throw Failure.http((response as? HTTPURLResponse)?.statusCode ?? 0)
+        }
+        return (data, http)
     }
 
     // MARK: - Formato (estático para poder probarlo sin TV)
@@ -143,6 +167,12 @@ final class TV {
         guard let list = result.last as? [[String: String]] else { throw Failure.badResponse }
         return Dictionary(list.compactMap { item in item["name"].flatMap { n in item["value"].map { (n, $0) } } },
                           uniquingKeysWith: { first, _ in first })
+    }
+
+    /// Valor de la cookie "auth" que devuelve actRegister en Set-Cookie.
+    nonisolated static func authCookie(_ response: HTTPURLResponse) -> String? {
+        guard let url = response.url, let fields = response.allHeaderFields as? [String: String] else { return nil }
+        return HTTPCookie.cookies(withResponseHeaderFields: fields, for: url).first { $0.name == "auth" }?.value
     }
 
     struct Volume: Equatable { var level: Int, max: Int, muted: Bool }
@@ -182,5 +212,30 @@ private final class NoAuthRetry: NSObject, URLSessionTaskDelegate, Sendable {
     func urlSession(_ session: URLSession, task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge) async
         -> (URLSession.AuthChallengeDisposition, URLCredential?) {
         (.cancelAuthenticationChallenge, nil)
+    }
+}
+
+/// Llavero mínimo: una cadena por cuenta (la IP de la TV).
+enum Keychain {
+    private static func query(_ account: String) -> [String: Any] {
+        [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: "tv-auth", kSecAttrAccount as String: account]
+    }
+
+    static func load(_ account: String) -> String? {
+        var query = query(account)
+        query[kSecReturnData as String] = true
+        var item: CFTypeRef?
+        guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess, let data = item as? Data else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+
+    /// `nil` borra.
+    static func save(_ value: String?, _ account: String) {
+        SecItemDelete(query(account) as CFDictionary)
+        guard let value else { return }
+        var item = query(account)
+        item[kSecValueData as String] = Data(value.utf8)
+        item[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
+        SecItemAdd(item as CFDictionary, nil)
     }
 }
