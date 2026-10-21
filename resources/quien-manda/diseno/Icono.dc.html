@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Icono de la app</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: {{box}}; height: {{box}}; display: block; overflow: hidden">
+<svg width="100%" height="100%" viewBox="0 0 1024 1024" role="img" aria-label="Icono de la app: cruceta con el botón OK en verde" style="display: block">
+<rect x="0" y="0" width="1024" height="1024" fill="{{c.bg}}"/>
+<circle cx="512" cy="512" r="372" fill="{{c.ring}}" stroke="{{c.line}}" stroke-width="8"/>
+<circle cx="512" cy="512" r="196" fill="none" stroke="{{c.line}}" stroke-width="8"/>
+<path d="M452 306 L512 246 L572 306" fill="none" stroke="{{c.chev}}" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M452 718 L512 778 L572 718" fill="none" stroke="{{c.chev}}" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M306 452 L246 512 L306 572" fill="none" stroke="{{c.chev}}" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M718 452 L778 512 L718 572" fill="none" stroke="{{c.chev}}" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="512" cy="512" r="140" fill="{{c.center}}"/>
+<g opacity="{{faceOpacity}}">
+<circle cx="466" cy="500" r="15" fill="{{c.face}}"/>
+<circle cx="558" cy="500" r="15" fill="{{c.face}}"/>
+<path d="M534 462 L584 444" fill="none" stroke="{{c.face}}" stroke-width="13" stroke-linecap="round"/>
+<path d="M462 556 L562 556" fill="none" stroke="{{c.face}}" stroke-width="15" stroke-linecap="round"/>
+</g>
+</svg>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["oscuro","claro","tinte"],"default":"oscuro"},"cara":{"editor":"boolean","default":true},"size":{"editor":null,"default":1024},"$preview":{"width":1024,"height":1024}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const v = this.props.variant || 'oscuro';
+    const size = this.props.size || 1024;
+    const sets = {
+      oscuro: { bg: '#141110', ring: '#211B17', line: 'rgba(241,230,208,0.16)', chev: '#F1E6D0', center: '#6FB07C', face: '#141110' },
+      claro: { bg: '#F4F1EA', ring: '#FFFFFF', line: 'rgba(20,17,16,0.14)', chev: '#141110', center: '#35693F', face: '#FFFFFF' },
+      tinte: { bg: '#000000', ring: '#1A1A1A', line: 'rgba(255,255,255,0.20)', chev: '#FFFFFF', center: '#BDBDBD', face: '#000000' }
+    };
+    const cara = (this.props.cara === undefined || this.props.cara === null) ? true : this.props.cara;
+    return { box: size + 'px', c: sets[v] || sets.oscuro, faceOpacity: cara ? 1 : 0 };
+  }
+}
+</script>
+</body>
+</html>

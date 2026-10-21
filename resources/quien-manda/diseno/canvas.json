@@ -1,0 +1,68 @@
+{
+ "v": 3,
+ "createdOnFiles": {
+  "v": 1,
+  "at": "2026-09-14T18:20:00Z"
+ },
+ "title": "Quién Manda — Prototipo iPhone",
+ "launch": {
+  "view": "canvas"
+ },
+ "pages": [],
+ "boards": {
+  "Main.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "Mando",
+   "is_interactive": true
+  },
+  "Splash.dc.html": {
+   "x": 470,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "Splash",
+   "is_interactive": true
+  },
+  "Iconografia.dc.html": {
+   "x": 940,
+   "y": 0,
+   "w": 1240,
+   "h": 740,
+   "title": "Iconografía"
+  },
+  "Icono.dc.html": {
+   "x": 0,
+   "y": 964,
+   "w": 1024,
+   "h": 1024,
+   "title": "Icono (1024)"
+  }
+ },
+ "order": [
+  "Main.dc.html",
+  "Splash.dc.html",
+  "Iconografia.dc.html",
+  "Icono.dc.html"
+ ],
+ "notes": {
+  "titulo": {
+   "x": 0,
+   "y": -300,
+   "text": "Quién Manda: app, splash e iconografía",
+   "kind": "title1",
+   "maxW": 2180
+  }
+ },
+ "designSystems": [
+  {
+   "title": "Salva Tejero Software Company — Marca",
+   "namespace": "salva-tejero",
+   "artifact": "https://claude.ai/artifact/XdJSkW6aC1gxSL8GNYQ4mu",
+   "version": null,
+   "copiedAt": "2026-10-21T10:00:00Z"
+  }
+ ]
+}

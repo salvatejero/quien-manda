@@ -1,0 +1,752 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Mando a distancia</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Plus+Jakarta+Sans:wght@700;800&display=swap">
+<style>
+body{margin:0}
+.key{appearance:none;-webkit-appearance:none;border:1px solid var(--line);background:var(--s200);color:var(--ink);font-family:Inter,system-ui,-apple-system,sans-serif;font-size:15px;font-weight:600;line-height:20px;border-radius:8px;min-height:44px;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;padding:0;transition:transform .08s ease,background .08s ease}
+.key:active{background:var(--press);transform:scale(.96)}
+.key:focus-visible{outline:3px solid var(--verde);outline-offset:3px}
+.ghost{background:transparent;border-color:transparent}
+.primary{background:var(--verde);color:var(--on-verde);border-color:transparent}
+.primary:active{background:var(--verde);filter:brightness(.88)}
+.track{transition:transform .3s ease}
+.page{visibility:hidden;transition:visibility 0s linear .3s}
+.page.on{visibility:visible;transition-delay:0s}
+.key:disabled{opacity:.35;cursor:default}
+.sheet{animation:sheetUp .22s ease}
+.found{animation:sheetUp .25s ease}
+@keyframes ring{from{transform:scale(.3);opacity:.7}to{transform:scale(1);opacity:0}}
+.ring{animation:ring 2.4s ease-out infinite backwards}
+@media (prefers-reduced-motion:reduce){.found{animation:none}.ring{animation:none;opacity:.25}}
+@keyframes sheetUp{from{transform:translateY(32px);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.sheet{animation:none}}
+@media (prefers-reduced-motion:reduce){.track{transition:none}.page{transition:none}}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; box-sizing: border-box; padding: 20px 20px 24px; display: flex; flex-direction: column; gap: 16px; overflow: hidden; background: var(--s100); color: var(--ink); font-family: Inter, system-ui, -apple-system, sans-serif; {{themeVars}}">
+
+<div style="display: flex; align-items: center; gap: 12px">
+<button type="button" class="key ghost" aria-label="Elegir dispositivo" onClick="{{cmdDevices}}" style="width: 44px; height: 44px; flex: none">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+</button>
+<div style="flex: 1; min-width: 0">
+<div style="font-family: 'Plus Jakarta Sans', Inter, system-ui, sans-serif; font-weight: 800; font-size: 20px; line-height: 24px; letter-spacing: -0.02em">{{devModel}}</div>
+<div style="display: flex; align-items: center; gap: 8px; font-size: 13px; line-height: 18px; color: var(--muted)"><span style="width: 8px; height: 8px; border-radius: 50%; flex: none; {{dotStyle}}"></span><span>{{subtitle}}</span></div>
+</div>
+<button type="button" class="key" aria-label="Encender o apagar" onClick="{{togglePower}}" style="width: 44px; height: 44px; flex: none; border-radius: 22px; border-color: transparent; background: var(--rojo); color: var(--s100)">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg>
+</button>
+</div>
+
+<div style="display: flex; gap: 4px; padding: 4px; background: var(--s200); border: 1px solid var(--line); border-radius: 8px">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="3">
+<button type="button" class="key ghost" aria-pressed="{{t.pressed}}" onClick="{{t.press}}" style="flex: 1; height: 44px; {{t.style}}">{{t.label}}</button>
+</sc-for>
+</div>
+
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 20px; font-size: 13px; line-height: 18px; color: var(--muted)">
+<span style="min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{status}}</span>
+<span style="display: flex; align-items: center; gap: 8px; flex: none"><span>{{volText}}</span><span style="width: 56px; height: 4px; border-radius: 2px; background: var(--line); overflow: hidden"><span style="display: block; height: 4px; background: var(--verde); {{volBar}}"></span></span></span>
+</div>
+
+<div style="flex: 1; min-height: 0; overflow: hidden; touch-action: pan-y" onPointerDown="{{swipeDown}}" onPointerUp="{{swipeUp}}" onPointerCancel="{{swipeCancel}}" onClickCapture="{{guardClick}}">
+<div class="track" style="display: flex; width: 1050px; {{trackStyle}}">
+
+<div class="page {{pgMando}}" style="width: 350px; flex: none">
+<div style="display: flex; flex-direction: column; gap: 14px">
+
+<div style="display: flex; gap: 12px; height: 176px">
+<div style="width: 84px; flex: none; display: flex; flex-direction: column; background: var(--s200); border: 1px solid var(--line); border-radius: 16px; overflow: hidden">
+<button type="button" class="key ghost" aria-label="Subir volumen" onClick="{{volUp}}" style="flex: 1; border-radius: 0">
+<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+</button>
+<div style="text-align: center; font-size: 13px; line-height: 18px; font-weight: 600; letter-spacing: 0.08em; color: var(--muted)">VOL</div>
+<button type="button" class="key ghost" aria-label="Bajar volumen" onClick="{{volDown}}" style="flex: 1; border-radius: 0">
+<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/></svg>
+</button>
+</div>
+
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px">
+<button type="button" class="key" aria-label="Silenciar" onClick="{{toggleMute}}" style="flex: 1; {{muteStyle}}">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5L6 9H3v6h3l5 4V5z"/><path d="M16 9l5 6M21 9l-5 6"/></svg>
+</button>
+<button type="button" class="key" onClick="{{cmdInputs}}" style="flex: 1">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h5a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-5"/><path d="M4 12h10M10 8l4 4-4 4"/></svg>
+Entradas
+</button>
+<button type="button" class="key" onClick="{{cmdGuide}}" style="flex: 1">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/></svg>
+Guía
+</button>
+</div>
+
+<div style="width: 84px; flex: none; display: flex; flex-direction: column; background: var(--s200); border: 1px solid var(--line); border-radius: 16px; overflow: hidden">
+<button type="button" class="key ghost" aria-label="Canal siguiente" onClick="{{chUp}}" style="flex: 1; border-radius: 0">
+<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+</button>
+<div style="text-align: center; font-size: 13px; line-height: 18px; font-weight: 600; letter-spacing: 0.08em; color: var(--muted)">CAN</div>
+<button type="button" class="key ghost" aria-label="Canal anterior" onClick="{{chDown}}" style="flex: 1; border-radius: 0">
+<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/></svg>
+</button>
+</div>
+</div>
+
+<div style="align-self: center; width: 248px; height: 248px; box-sizing: border-box; padding: 8px; border-radius: 50%; background: var(--s200); border: 1px solid var(--line); display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(3, minmax(0, 1fr))">
+<div></div>
+<button type="button" class="key ghost" aria-label="Arriba" onClick="{{dUp}}" style="border-radius: 50%; width: 100%; height: 100%">
+<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg>
+</button>
+<div></div>
+<button type="button" class="key ghost" aria-label="Izquierda" onClick="{{dLeft}}" style="border-radius: 50%; width: 100%; height: 100%">
+<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+</button>
+<button type="button" class="key primary" aria-label="Aceptar" onClick="{{dOk}}" style="border-radius: 50%; width: 100%; height: 100%; font-family: 'Plus Jakarta Sans', Inter, system-ui, sans-serif; font-weight: 800; font-size: 20px; letter-spacing: -0.02em">OK</button>
+<button type="button" class="key ghost" aria-label="Derecha" onClick="{{dRight}}" style="border-radius: 50%; width: 100%; height: 100%">
+<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+</button>
+<div></div>
+<button type="button" class="key ghost" aria-label="Abajo" onClick="{{dDown}}" style="border-radius: 50%; width: 100%; height: 100%">
+<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+</button>
+<div></div>
+</div>
+
+<div style="display: flex; gap: 10px">
+<button type="button" class="key" onClick="{{cmdBack}}" style="flex: 1; height: 52px">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>
+Atrás
+</button>
+<button type="button" class="key" onClick="{{cmdHome}}" style="flex: 1; height: 52px">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11l8-7 8 7"/><path d="M6 10v10h12V10"/></svg>
+Inicio
+</button>
+<button type="button" class="key" onClick="{{cmdMenu}}" style="flex: 1; height: 52px">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+Menú
+</button>
+</div>
+
+<div style="display: flex; gap: 10px">
+<button type="button" class="key" aria-label="Retroceder" onClick="{{cmdRew}}" style="flex: 1; height: 52px">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 6L4 12l7 6V6z"/><path d="M20 6l-7 6 7 6V6z"/></svg>
+</button>
+<button type="button" class="key" aria-label="Reproducir" onClick="{{cmdPlay}}" style="flex: 1; height: 52px">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 5l12 7-12 7V5z"/></svg>
+</button>
+<button type="button" class="key" aria-label="Pausa" onClick="{{cmdPause}}" style="flex: 1; height: 52px">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg>
+</button>
+<button type="button" class="key" aria-label="Avanzar" onClick="{{cmdFf}}" style="flex: 1; height: 52px">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 6l7 6-7 6V6z"/><path d="M4 6l7 6-7 6V6z"/></svg>
+</button>
+</div>
+
+</div>
+</div>
+
+<div class="page {{pgNum}}" style="width: 350px; flex: none">
+<div style="display: flex; flex-direction: column; gap: 14px">
+
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 96px; box-sizing: border-box; padding: 12px 16px 12px 20px; background: var(--s200); border: 1px solid var(--line); border-radius: 16px">
+<div>
+<div style="font-size: 13px; line-height: 18px; color: var(--muted)">Canal</div>
+<div style="font-family: 'Plus Jakarta Sans', Inter, system-ui, sans-serif; font-weight: 800; font-size: 56px; line-height: 60px; letter-spacing: -0.02em">{{chText}}</div>
+</div>
+<div style="display: flex; gap: 8px">
+<button type="button" class="key" onClick="{{chDelete}}" style="height: 44px; padding: 0 14px; background: transparent">Borrar</button>
+<button type="button" class="key primary" onClick="{{chGo}}" style="height: 44px; padding: 0 20px">Ir</button>
+</div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+<sc-for list="{{pad}}" as="k" hint-placeholder-count="12">
+<button type="button" class="key" aria-label="{{k.aria}}" onClick="{{k.press}}" style="height: 64px; {{k.style}}">{{k.label}}</button>
+</sc-for>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+<sc-for list="{{extra}}" as="e" hint-placeholder-count="3">
+<button type="button" class="key" onClick="{{e.press}}" style="height: 52px">{{e.label}}</button>
+</sc-for>
+</div>
+
+<div style="display: flex; gap: 12px">
+<sc-for list="{{colorKeys}}" as="c" hint-placeholder-count="4">
+<button type="button" class="key" aria-label="{{c.aria}}" onClick="{{c.press}}" style="flex: 1; height: 44px"><span style="display: block; width: 36px; height: 6px; border-radius: 3px; {{c.bar}}"></span></button>
+</sc-for>
+</div>
+
+</div>
+</div>
+
+<div class="page {{pgApps}}" style="width: 350px; flex: none">
+<div style="display: flex; flex-direction: column; gap: 14px">
+
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+<button type="button" class="key" onClick="{{cmdOptions}}" style="height: 88px; flex-direction: column; align-items: flex-start; justify-content: space-between; padding: 14px; gap: 0">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>
+Opciones
+</button>
+<button type="button" class="key" onClick="{{cmdDiscover}}" style="height: 88px; flex-direction: column; align-items: flex-start; justify-content: space-between; padding: 14px; gap: 0">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5 5-2z"/></svg>
+Descubrir
+</button>
+<button type="button" class="key" onClick="{{cmdKeyboard}}" style="height: 88px; flex-direction: column; align-items: flex-start; justify-content: space-between; padding: 14px; gap: 0">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M8 14h8"/></svg>
+Teclado
+</button>
+<button type="button" class="key" onClick="{{cmdWeb}}" style="height: 88px; flex-direction: column; align-items: flex-start; justify-content: space-between; padding: 14px; gap: 0">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18z"/></svg>
+Web
+</button>
+<button type="button" class="key" onClick="{{cmdSettings}}" style="height: 88px; flex-direction: column; align-items: flex-start; justify-content: space-between; padding: 14px; gap: 0">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9L7 7M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>
+Ajustes
+</button>
+<button type="button" class="key" onClick="{{cmdHelp}}" style="height: 88px; flex-direction: column; align-items: flex-start; justify-content: space-between; padding: 14px; gap: 0">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7"/><path d="M12 17h.01"/></svg>
+Ayuda
+</button>
+</div>
+
+<div style="font-family: 'Plus Jakarta Sans', Inter, system-ui, sans-serif; font-weight: 700; font-size: 24px; line-height: 30px; letter-spacing: -0.02em; margin-top: 6px">Entradas</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{inputs}}" as="i" hint-placeholder-count="4">
+<button type="button" class="key" aria-pressed="{{i.pressed}}" onClick="{{i.press}}" style="height: 52px; justify-content: space-between; padding: 0 16px; {{i.style}}">
+<span style="display: flex; align-items: center; gap: 12px"><span style="width: 18px; height: 18px; box-sizing: border-box; border-radius: 50%; border: 2px solid var(--muted); {{i.dotStyle}}"></span>{{i.label}}</span>
+<span style="font-size: 13px; line-height: 18px; font-weight: 600; color: var(--verde)">{{i.tag}}</span>
+</button>
+</sc-for>
+</div>
+
+</div>
+</div>
+</div>
+</div>
+
+<div style="display: flex; justify-content: center; align-items: center; height: 24px">
+<sc-for list="{{dots}}" as="d" hint-placeholder-count="3">
+<button type="button" class="key ghost" aria-label="{{d.aria}}" aria-current="{{d.current}}" onClick="{{d.press}}" style="width: 36px; height: 24px; min-height: 24px; border-radius: 12px"><span style="display: block; height: 8px; border-radius: 4px; transition: width .2s ease; {{d.style}}"></span></button>
+</sc-for>
+</div>
+
+<sc-if value="{{showFab}}" hint-placeholder-val="{{ true }}">
+<button type="button" class="key" aria-label="Apps" onClick="{{openSheet}}" style="position: absolute; right: 16px; top: 574px; width: 56px; height: 56px; border-radius: 28px; background: var(--ink); color: var(--s100); border-color: transparent; box-shadow: 0 0 0 4px var(--s100)">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/></svg>
+</button>
+</sc-if>
+
+<sc-if value="{{showSheet}}" hint-placeholder-val="{{ false }}">
+<button type="button" aria-label="Cerrar panel de Apps" onClick="{{closeSheet}}" style="position: absolute; left: 0; top: 0; width: 390px; height: 844px; padding: 0; border: 0; background: var(--scrim); cursor: pointer"></button>
+<div class="sheet" style="position: absolute; left: 0; bottom: 0; width: 390px; box-sizing: border-box; padding: 16px 20px 28px; background: var(--s100); border-top: 1px solid var(--line); border-radius: 16px 16px 0 0; display: flex; flex-direction: column; gap: 16px">
+
+<div style="display: flex; align-items: center; gap: 4px">
+<div style="flex: 1; font-family: 'Plus Jakarta Sans', Inter, system-ui, sans-serif; font-weight: 700; font-size: 24px; line-height: 30px; letter-spacing: -0.02em">Apps</div>
+<button type="button" class="key ghost" aria-label="Configurar apps" onClick="{{openSettings}}" style="width: 44px; height: 44px">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9L7 7M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>
+</button>
+<button type="button" class="key ghost" aria-label="Cerrar" onClick="{{closeSheet}}" style="width: 44px; height: 44px">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+</button>
+</div>
+
+<sc-if value="{{showEmpty}}" hint-placeholder-val="{{ false }}">
+<div style="font-size: 15px; line-height: 22px; color: var(--muted)">No hay apps en el panel. Actívalas en Configuración.</div>
+</sc-if>
+
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+<sc-for list="{{apps}}" as="a" hint-placeholder-count="5">
+<button type="button" class="key" onClick="{{a.press}}" style="height: 96px; flex-direction: column; gap: 8px; padding: 12px 4px">
+<span style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 8px; background: var(--ink); color: var(--s100); font-family: 'Plus Jakarta Sans', Inter, system-ui, sans-serif; font-weight: 800; font-size: 20px">{{a.mono}}</span>
+<span style="font-size: 13px; line-height: 18px">{{a.name}}</span>
+</button>
+</sc-for>
+</div>
+
+<button type="button" class="key primary" onClick="{{openTvApps}}" style="height: 52px">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/></svg>
+Apps de la tele
+</button>
+
+</div>
+</sc-if>
+
+<sc-if value="{{showSettings}}" hint-placeholder-val="{{ false }}">
+<div class="sheet" style="position: absolute; left: 0; top: 0; width: 390px; height: 844px; box-sizing: border-box; padding: 20px 20px 24px; background: var(--s100); display: flex; flex-direction: column; gap: 16px; overflow: hidden">
+
+<div style="display: flex; align-items: center; gap: 8px">
+<button type="button" class="key ghost" aria-label="Volver" onClick="{{closeSettings}}" style="width: 44px; height: 44px; flex: none">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+</button>
+<div style="font-family: 'Plus Jakarta Sans', Inter, system-ui, sans-serif; font-weight: 700; font-size: 24px; line-height: 30px; letter-spacing: -0.02em">Configuración</div>
+</div>
+
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 8px 12px 16px; background: var(--s200); border: 1px solid var(--line); border-radius: 16px">
+<div style="min-width: 0">
+<div style="font-size: 15px; line-height: 22px; font-weight: 600">Botón flotante</div>
+<div style="font-size: 13px; line-height: 18px; color: var(--muted)">Mostrar Apps sobre el mando</div>
+</div>
+<button type="button" role="switch" class="key ghost" aria-checked="{{fabOn}}" aria-label="Botón flotante" onClick="{{toggleFab}}" style="width: 56px; height: 44px; flex: none">
+<span style="display: block; position: relative; width: 48px; height: 28px; box-sizing: border-box; border-radius: 14px; border: 2px solid var(--muted); {{fabTrack}}"><span style="position: absolute; top: 2px; width: 20px; height: 20px; border-radius: 50%; transition: left .15s ease; {{fabKnob}}"></span></span>
+</button>
+</div>
+
+<div>
+<div style="font-size: 17px; line-height: 27px; font-weight: 600">Apps del panel</div>
+<div style="font-size: 13px; line-height: 18px; color: var(--muted)">Activa las que quieras y ordénalas con la flecha.</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{appsAll}}" as="a" hint-placeholder-count="8">
+<div style="display: flex; align-items: center; gap: 8px; height: 56px; box-sizing: border-box; padding: 0 4px 0 12px; background: var(--s200); border: 1px solid var(--line); border-radius: 8px">
+<span style="display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; flex: none; border-radius: 8px; background: var(--ink); color: var(--s100); font-family: 'Plus Jakarta Sans', Inter, system-ui, sans-serif; font-weight: 800; font-size: 17px">{{a.mono}}</span>
+<span style="flex: 1; min-width: 0; font-size: 15px; line-height: 22px; font-weight: 600">{{a.name}}</span>
+<button type="button" class="key ghost" aria-label="{{a.ariaUp}}" disabled="{{a.first}}" onClick="{{a.up}}" style="width: 44px; height: 44px; flex: none">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg>
+</button>
+<button type="button" role="switch" class="key ghost" aria-checked="{{a.on}}" aria-label="{{a.ariaToggle}}" onClick="{{a.toggle}}" style="width: 56px; height: 44px; flex: none">
+<span style="display: block; position: relative; width: 48px; height: 28px; box-sizing: border-box; border-radius: 14px; border: 2px solid var(--muted); {{a.trackStyle}}"><span style="position: absolute; top: 2px; width: 20px; height: 20px; border-radius: 50%; transition: left .15s ease; {{a.knobStyle}}"></span></span>
+</button>
+</div>
+</sc-for>
+</div>
+
+</div>
+</sc-if>
+
+<sc-if value="{{showDiscover}}" hint-placeholder-val="{{ true }}">
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: 844px; box-sizing: border-box; padding: 20px 20px 24px; background: var(--s100); display: flex; flex-direction: column; gap: 16px; overflow: hidden">
+
+<div style="display: flex; align-items: center; justify-content: flex-end; height: 44px">
+<sc-if value="{{showClose}}" hint-placeholder-val="{{ false }}">
+<button type="button" class="key ghost" aria-label="Cerrar" onClick="{{closeDiscover}}" style="width: 44px; height: 44px">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+</button>
+</sc-if>
+</div>
+
+<div>
+<div style="font-family: 'Plus Jakarta Sans', Inter, system-ui, sans-serif; font-weight: 800; font-size: 32px; line-height: 36px; letter-spacing: -0.02em">Busca tu tele</div>
+<div aria-live="polite" style="margin-top: 8px; font-size: 17px; line-height: 27px; color: var(--muted)">{{scanText}}</div>
+</div>
+
+<div style="position: relative; align-self: center; width: 176px; height: 176px; flex: none; display: flex; align-items: center; justify-content: center">
+<sc-if value="{{scanning}}" hint-placeholder-val="{{ true }}">
+<span class="ring" style="position: absolute; left: 0; top: 0; width: 176px; height: 176px; box-sizing: border-box; border-radius: 50%; border: 2px solid var(--verde)"></span>
+<span class="ring" style="position: absolute; left: 0; top: 0; width: 176px; height: 176px; box-sizing: border-box; border-radius: 50%; border: 2px solid var(--verde); animation-delay: .8s"></span>
+<span class="ring" style="position: absolute; left: 0; top: 0; width: 176px; height: 176px; box-sizing: border-box; border-radius: 50%; border: 2px solid var(--verde); animation-delay: 1.6s"></span>
+</sc-if>
+<span style="display: flex; align-items: center; justify-content: center; width: 72px; height: 72px; border-radius: 50%; background: var(--verde); color: var(--on-verde)">
+<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+</span>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{devices}}" as="d" hint-placeholder-count="3">
+<button type="button" class="key found" onClick="{{d.press}}" style="height: 68px; justify-content: space-between; padding: 0 12px; text-align: left">
+<span style="display: flex; align-items: center; gap: 12px; min-width: 0">
+<span style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; flex: none; border-radius: 8px; background: var(--ink); color: var(--s100)">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+</span>
+<span style="display: flex; flex-direction: column; align-items: flex-start; min-width: 0"><span style="font-size: 15px; line-height: 22px; font-weight: 600">{{d.name}}</span><span style="font-size: 13px; line-height: 18px; font-weight: 400; color: var(--muted)">{{d.sub}}</span></span>
+</span>
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+</button>
+</sc-for>
+</div>
+
+<div style="margin-top: auto; display: flex; flex-direction: column; gap: 12px">
+<button type="button" class="key" disabled="{{scanning}}" onClick="{{rescan}}" style="height: 52px">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.5-5.8"/><path d="M20 4v5h-5"/></svg>
+Buscar de nuevo
+</button>
+<div style="font-size: 13px; line-height: 18px; color: var(--muted); text-align: center">¿No aparece tu tele? Comprueba que está encendida y conectada a la misma red Wi-Fi.</div>
+</div>
+
+</div>
+</sc-if>
+
+<sc-if value="{{showPin}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: 844px; box-sizing: border-box; padding: 20px 20px 24px; background: var(--s100); display: flex; flex-direction: column; gap: 16px; overflow: hidden">
+
+<div style="display: flex; align-items: center; height: 44px">
+<button type="button" class="key ghost" aria-label="Volver" onClick="{{backToDiscover}}" style="width: 44px; height: 44px">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+</button>
+</div>
+
+<div>
+<div style="font-family: 'Plus Jakarta Sans', Inter, system-ui, sans-serif; font-weight: 800; font-size: 32px; line-height: 36px; letter-spacing: -0.02em">Introduce el PIN</div>
+<div style="margin-top: 8px; font-size: 17px; line-height: 27px; color: var(--muted)">Mira la pantalla de <span style="font-weight: 600; color: var(--ink)">{{targetName}}</span>: te mostrará un código de 4 dígitos.</div>
+</div>
+
+<div style="display: flex; gap: 12px">
+<sc-for list="{{pinBoxes}}" as="b" hint-placeholder-count="4">
+<div style="flex: 1; height: 72px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; background: var(--s200); border: 2px solid var(--line); border-radius: 8px; font-family: 'Plus Jakarta Sans', Inter, system-ui, sans-serif; font-weight: 800; font-size: 32px; {{b.style}}">{{b.digit}}</div>
+</sc-for>
+</div>
+
+<div aria-live="polite" style="min-height: 22px; font-size: 15px; line-height: 22px; {{pinMsgStyle}}">{{pinMsg}}</div>
+
+<div style="margin-top: auto; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+<sc-for list="{{pinPad}}" as="k" hint-placeholder-count="9">
+<button type="button" class="key" aria-label="{{k.aria}}" onClick="{{k.press}}" style="height: 60px; font-family: 'Plus Jakarta Sans', Inter, system-ui, sans-serif; font-weight: 700; font-size: 28px">{{k.label}}</button>
+</sc-for>
+<div></div>
+<button type="button" class="key" aria-label="Tecla 0" onClick="{{pin0}}" style="height: 60px; font-family: 'Plus Jakarta Sans', Inter, system-ui, sans-serif; font-weight: 700; font-size: 28px">0</button>
+<button type="button" class="key ghost" aria-label="Borrar" onClick="{{pinDel}}" style="height: 60px">
+<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5h11a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H9l-6-7 6-7z"/><path d="M13 10l4 4M17 10l-4 4"/></svg>
+</button>
+</div>
+
+</div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":true},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.sx = null;
+    this.sy = 0;
+    this.swiped = false;
+    this.state = { page: 0, status: 'Lista para enviar órdenes', on: true, muted: false, vol: 24, ch: '', input: 'HDMI 1', sheet: false, settings: false, fab: true, apps: [{ id: 'youtube', on: true }, { id: 'netflix', on: true }, { id: 'prime', on: true }, { id: 'appletv', on: true }, { id: 'hbo', on: true }, { id: 'disney', on: false }, { id: 'spotify', on: false }, { id: 'plex', on: false }], stage: 'discover', connected: false, scanning: true, found: [], target: null, pin: '', pinState: 'idle', device: { model: 'Sony Bravia', name: 'Tele' } };
+    this.timers = [];
+    this.tvList = [
+      { id: 'salon', model: 'Sony Bravia', name: 'Tele', addr: '192.0.2.34', at: 1400 },
+      { id: 'dormitorio', model: 'Sony Bravia', name: 'Dormitorio', addr: '192.0.2.41', at: 2600 },
+      { id: 'cocina', model: 'Android TV', name: 'Cocina', addr: '192.0.2.52', at: 3900 }
+    ];
+    this.tvs = {};
+    this.tvList.forEach((t) => { this.tvs[t.id] = t; });
+    this.catalog = {
+      youtube: { name: 'YouTube', mono: 'Y' },
+      netflix: { name: 'Netflix', mono: 'N' },
+      prime: { name: 'Prime Video', mono: 'P' },
+      appletv: { name: 'Apple TV', mono: 'A' },
+      hbo: { name: 'HBO', mono: 'H' },
+      disney: { name: 'Disney+', mono: 'D' },
+      spotify: { name: 'Spotify', mono: 'S' },
+      plex: { name: 'Plex', mono: 'X' }
+    };
+  }
+
+  say(text, extra) {
+    this.setState(Object.assign({ status: 'Enviado · ' + text }, extra || {}));
+  }
+
+  cmd(text) {
+    return () => this.say(text);
+  }
+
+  componentDidMount() {
+    this.startScan();
+  }
+
+  componentWillUnmount() {
+    this.clearTimers();
+  }
+
+  later(fn, ms) {
+    this.timers.push(setTimeout(fn, ms));
+  }
+
+  clearTimers() {
+    this.timers.forEach((t) => clearTimeout(t));
+    this.timers = [];
+  }
+
+  startScan() {
+    this.clearTimers();
+    this.setState({ scanning: true, found: [] });
+    this.tvList.forEach((t) => {
+      this.later(() => this.setState({ found: this.state.found.concat([t.id]) }), t.at);
+    });
+    this.later(() => this.setState({ scanning: false }), 4800);
+  }
+
+  pick(id) {
+    this.clearTimers();
+    this.setState({ stage: 'pin', target: id, pin: '', pinState: 'idle', scanning: false });
+  }
+
+  pinDigit(d) {
+    const s = this.state;
+    if (s.pinState === 'checking') return;
+    const cur = s.pinState === 'error' ? '' : s.pin;
+    if (cur.length >= 4) return;
+    const next = cur + d;
+    if (next.length < 4) {
+      this.setState({ pin: next, pinState: 'idle' });
+      return;
+    }
+    this.setState({ pin: next, pinState: 'checking' });
+    this.later(() => {
+      if (next === '0000') {
+        this.setState({ pin: '', pinState: 'error' });
+        return;
+      }
+      const t = this.tvs[this.state.target];
+      this.setState({ stage: 'remote', connected: true, on: true, page: 0, pin: '', pinState: 'idle', device: { model: t.model, name: t.name }, status: 'Conectado · ' + t.name });
+    }, 900);
+  }
+
+  pinDelete() {
+    if (this.state.pinState === 'checking') return;
+    this.setState({ pin: this.state.pin.slice(0, -1), pinState: 'idle' });
+  }
+
+  toggleApp(id) {
+    this.setState({ apps: this.state.apps.map((a) => (a.id === id ? { id: a.id, on: !a.on } : a)) });
+  }
+
+  moveUp(id) {
+    const arr = this.state.apps.slice();
+    const i = arr.findIndex((a) => a.id === id);
+    if (i > 0) {
+      const t = arr[i - 1];
+      arr[i - 1] = arr[i];
+      arr[i] = t;
+    }
+    this.setState({ apps: arr });
+  }
+
+  goTo(n) {
+    this.setState({ page: Math.max(0, Math.min(2, n)) });
+  }
+
+  begin(e) {
+    this.sx = e.clientX;
+    this.sy = e.clientY;
+    this.swiped = false;
+  }
+
+  finish(e) {
+    if (this.sx === null || this.sx === undefined) return;
+    const dx = e.clientX - this.sx;
+    const dy = e.clientY - this.sy;
+    this.sx = null;
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      this.swiped = true;
+      this.goTo(this.state.page + (dx < 0 ? 1 : -1));
+    }
+  }
+
+  guard(e) {
+    if (this.swiped) {
+      this.swiped = false;
+      e.stopPropagation();
+      e.preventDefault();
+    }
+  }
+
+  digit(d) {
+    const cur = this.state.ch;
+    const next = cur.length < 3 ? cur + d : cur;
+    this.say('Tecla ' + d, { ch: next });
+  }
+
+  renderVals() {
+    const s = this.state;
+    const dark = (this.props.dark === undefined || this.props.dark === null) ? true : this.props.dark;
+
+    const themeVars = dark
+      ? '--s100:#141110;--s200:#211B17;--ink:#F1E6D0;--muted:#C9B99A;--verde:#6FB07C;--on-verde:#141110;--rojo:#E0675D;--mostaza:#E3B33A;--azul:#8FB5C9;--line:rgba(241,230,208,0.14);--press:rgba(241,230,208,0.10);--scrim:rgba(0,0,0,0.6)'
+      : '--s100:#FFFFFF;--s200:#F4F1EA;--ink:#141110;--muted:#6B5A45;--verde:#35693F;--on-verde:#FFFFFF;--rojo:#B3342B;--mostaza:#D9A520;--azul:#8FB5C9;--line:rgba(20,17,16,0.14);--press:rgba(20,17,16,0.08);--scrim:rgba(20,17,16,0.45)';
+
+    const labels = ['Mando', 'Números', 'Atajos'];
+    const tabs = labels.map((l, n) => ({
+      label: l,
+      pressed: s.page === n,
+      style: s.page === n ? 'background: var(--verde); color: var(--on-verde)' : 'color: var(--muted)',
+      press: () => this.goTo(n)
+    }));
+    const dots = labels.map((l, n) => ({
+      aria: 'Pantalla ' + l,
+      current: s.page === n,
+      style: s.page === n ? 'width: 20px; background: var(--verde)' : 'width: 8px; background: var(--muted)',
+      press: () => this.goTo(n)
+    }));
+
+    const padStyle = 'font-family: \'Plus Jakarta Sans\', Inter, system-ui, sans-serif; font-weight: 700; font-size: 28px';
+    const smallStyle = 'font-size: 15px';
+    const pad = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'Info', '0', 'Ancho'].map((l) => {
+      const isNum = l.length === 1;
+      return {
+        label: l,
+        aria: isNum ? 'Tecla ' + l : l,
+        style: isNum ? padStyle : smallStyle,
+        press: isNum ? () => this.digit(l) : () => this.say(l)
+      };
+    });
+    const extra = ['Audio', 'Ayuda', 'TV'].map((l) => ({ label: l, press: () => this.say(l) }));
+    const colorKeys = [
+      { aria: 'Rojo', bar: 'background: var(--rojo)' },
+      { aria: 'Verde', bar: 'background: var(--verde)' },
+      { aria: 'Amarillo', bar: 'background: var(--mostaza)' },
+      { aria: 'Azul', bar: 'background: var(--azul)' }
+    ].map((c) => ({ aria: c.aria, bar: c.bar, press: () => this.say('Tecla ' + c.aria.toLowerCase()) }));
+
+    const inputs = ['HDMI 1', 'HDMI 2', 'HDMI 3', 'TV digital'].map((l) => {
+      const sel = s.input === l;
+      return {
+        label: l,
+        pressed: sel,
+        tag: sel ? 'Activa' : '',
+        style: sel ? 'border-color: var(--verde)' : '',
+        dotStyle: sel ? 'background: var(--verde); border-color: var(--verde)' : 'background: transparent',
+        press: () => this.say('Entrada ' + l, { input: l })
+      };
+    });
+
+    const switchTrack = (on) => (on ? 'background: var(--verde); border-color: var(--verde)' : 'background: transparent');
+    const switchKnob = (on) => (on ? 'left: 22px; background: var(--on-verde)' : 'left: 2px; background: var(--muted)');
+    const appsAll = s.apps.map((a, i) => ({
+      name: this.catalog[a.id].name,
+      mono: this.catalog[a.id].mono,
+      on: a.on,
+      first: i === 0,
+      ariaUp: 'Subir ' + this.catalog[a.id].name,
+      ariaToggle: 'Mostrar ' + this.catalog[a.id].name,
+      trackStyle: switchTrack(a.on),
+      knobStyle: switchKnob(a.on),
+      toggle: () => this.toggleApp(a.id),
+      up: () => this.moveUp(a.id)
+    }));
+    const appsOn = s.apps.filter((a) => a.on).map((a) => ({
+      name: this.catalog[a.id].name,
+      mono: this.catalog[a.id].mono,
+      press: () => this.say('Abrir ' + this.catalog[a.id].name, { sheet: false })
+    }));
+
+    const nFound = s.found.length;
+    const devices = s.found.map((id) => ({
+      name: this.tvs[id].name,
+      sub: this.tvs[id].model + ' · ' + this.tvs[id].addr,
+      press: () => this.pick(id)
+    }));
+    let scanText;
+    if (s.scanning) {
+      scanText = nFound === 0 ? 'Buscando televisores en tu red Wi-Fi…' : 'Buscando… ' + nFound + (nFound === 1 ? ' encontrada' : ' encontradas');
+    } else {
+      scanText = nFound === 0 ? 'No se ha encontrado ninguna tele en esta red.' : nFound + (nFound === 1 ? ' tele encontrada' : ' teles encontradas') + '. Elige la tuya.';
+    }
+    const pinBoxes = [0, 1, 2, 3].map((i) => {
+      let st = '';
+      if (s.pinState === 'error') st = 'border-color: var(--rojo)';
+      else if (s.pinState !== 'checking' && i === s.pin.length) st = 'border-color: var(--verde)';
+      return { digit: s.pin.charAt(i), style: st };
+    });
+    const pinMsg = s.pinState === 'checking' ? 'Conectando…' : (s.pinState === 'error' ? 'PIN incorrecto. Revisa el código de la tele.' : 'Escríbelo tal y como aparece.');
+    const pinMsgStyle = s.pinState === 'error' ? 'color: var(--rojo)' : 'color: var(--muted)';
+    const pinPad = ['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => ({ label: d, aria: 'Tecla ' + d, press: () => this.pinDigit(d) }));
+    const target = this.tvs[s.target];
+
+    const volMax = 40;
+    const volPct = s.muted ? 0 : Math.round((s.vol / volMax) * 100);
+
+    return {
+      themeVars: themeVars,
+      subtitle: s.on ? s.device.name + ' · Conectada' : s.device.name + ' · En espera',
+      devModel: s.device.model,
+      dotStyle: s.on ? 'background: var(--verde)' : 'background: var(--muted)',
+      status: s.status,
+      volText: s.muted ? 'Silencio' : 'Vol ' + s.vol,
+      volBar: 'width: ' + volPct + '%',
+      muteStyle: s.muted ? 'border-color: var(--rojo)' : '',
+      tabs: tabs,
+      dots: dots,
+      trackStyle: 'transform: translateX(-' + (s.page * 350) + 'px)',
+      pgMando: s.page === 0 ? 'on' : '',
+      pgNum: s.page === 1 ? 'on' : '',
+      pgApps: s.page === 2 ? 'on' : '',
+      showFab: s.page === 0 && s.fab && !s.settings && s.stage === 'remote',
+      showDiscover: s.stage === 'discover',
+      showPin: s.stage === 'pin',
+      showClose: s.connected,
+      scanning: s.scanning,
+      scanText: scanText,
+      devices: devices,
+      pinBoxes: pinBoxes,
+      pinMsg: pinMsg,
+      pinMsgStyle: pinMsgStyle,
+      pinPad: pinPad,
+      targetName: target ? target.model + ' · ' + target.name : '',
+      pin0: () => this.pinDigit('0'),
+      pinDel: () => this.pinDelete(),
+      rescan: () => this.startScan(),
+      closeDiscover: () => { this.clearTimers(); this.setState({ stage: 'remote', scanning: false }); },
+      backToDiscover: () => { this.setState({ stage: 'discover', pin: '', pinState: 'idle' }); this.startScan(); },
+      showSheet: s.sheet,
+      showSettings: s.settings,
+      showEmpty: appsOn.length === 0,
+      apps: appsOn,
+      appsAll: appsAll,
+      fabOn: s.fab,
+      fabTrack: switchTrack(s.fab),
+      fabKnob: switchKnob(s.fab),
+      toggleFab: () => this.setState({ fab: !this.state.fab }),
+      openSheet: () => this.setState({ sheet: true }),
+      closeSheet: () => this.setState({ sheet: false }),
+      openSettings: () => this.setState({ settings: true, sheet: false }),
+      closeSettings: () => this.setState({ settings: false }),
+      openTvApps: () => this.say('Apps de la tele', { sheet: false }),
+      swipeDown: (e) => this.begin(e),
+      swipeUp: (e) => this.finish(e),
+      swipeCancel: () => { this.sx = null; },
+      guardClick: (e) => this.guard(e),
+      pad: pad,
+      extra: extra,
+      colorKeys: colorKeys,
+      inputs: inputs,
+      chText: s.ch === '' ? '—' : s.ch,
+
+      togglePower: () => this.say(s.on ? 'Apagar' : 'Encender', { on: !s.on }),
+      volUp: () => this.say('Volumen +', { vol: Math.min(volMax, this.state.vol + 1), muted: false }),
+      volDown: () => this.say('Volumen −', { vol: Math.max(0, this.state.vol - 1), muted: false }),
+      toggleMute: () => this.say('Silencio', { muted: !this.state.muted }),
+      chUp: this.cmd('Canal +'),
+      chDown: this.cmd('Canal −'),
+      chDelete: () => this.setState({ ch: this.state.ch.slice(0, -1) }),
+      chGo: () => this.say('Ir al canal ' + (this.state.ch === '' ? '—' : this.state.ch), { ch: '' }),
+
+      dUp: this.cmd('Arriba'),
+      dDown: this.cmd('Abajo'),
+      dLeft: this.cmd('Izquierda'),
+      dRight: this.cmd('Derecha'),
+      dOk: this.cmd('OK'),
+
+      cmdDevices: () => { this.setState({ stage: 'discover' }); this.startScan(); },
+      cmdInputs: () => this.goTo(2),
+      
+      cmdGuide: this.cmd('Guía'),
+      cmdBack: this.cmd('Atrás'),
+      cmdHome: this.cmd('Inicio'),
+      cmdMenu: this.cmd('Menú'),
+      cmdRew: this.cmd('Retroceder'),
+      cmdPlay: this.cmd('Reproducir'),
+      cmdPause: this.cmd('Pausa'),
+      cmdFf: this.cmd('Avanzar'),
+
+      cmdOptions: this.cmd('Opciones'),
+      cmdDiscover: this.cmd('Descubrir'),
+      cmdKeyboard: this.cmd('Teclado'),
+      cmdWeb: this.cmd('Web'),
+      cmdSettings: () => this.setState({ settings: true, sheet: false }),
+      cmdHelp: this.cmd('Ayuda')
+    };
+  }
+}
+</script>
+</body>
+</html>
