@@ -39,12 +39,12 @@ xcodebuild test -project SonyMando.xcodeproj -scheme SonyMando \
 | Dos columnas en pantalla ancha (iPhone Duo abierto, iPad horizontal) | ✅ simulador |
 | Modo demo sin TV (`-screen`, `-page`, `-sheet`) | ✅ |
 | Identidad: icono (oscuro y tintado), splash y 27 iconos propios de `resources/quien-manda` | ✅ simulador |
-| Olvidar la tele guardada (Configuración → «Olvidar esta tele»: borra IP, PSK, nombre y cookie del llavero) | ✅ simulador |
+| Varias teles guardadas: «Mis teles» (icono ☰ en «Busca tu tele») para cambiar, renombrar u olvidar (borra IP, PSK y cookie del llavero) | ✅ simulador; falta probar con TV real |
 | Reconexión directa al mando con la cookie del PIN guardada en el llavero | 🧪 falta probar con TV real |
 | Búsqueda por SSDP | ❌ descartada: necesita el entitlement de multicast y Bonjour + barrido ya lo cubren |
 | TouchPad, teclado de texto, háptica configurable | ⏳ fase 2 |
 | Historial, reconexión, Force Mode, onboarding | ⏳ fase 3 |
-| Function Keys, Shortcuts de apps, varias TVs, estado de la TV | ⏳ fase 4 |
+| Function Keys, Shortcuts de apps, estado de la TV | ⏳ fase 4 |
 | Siri / App Intents, widgets, Centro de Control | ⏳ fase 6 |
 | Apple Watch | ⏳ fase 7 |
 | Modo oscuro (sigue al sistema) | ✅ |

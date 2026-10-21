@@ -41,6 +41,14 @@ final class TVTests: XCTestCase {
         XCTAssertEqual(PanelApp.merge(stored, titles: []), stored)
     }
 
+    func testSavedTVsKeepNameAndMoveFirst() {
+        let list = [SavedTV(ip: "1", name: "Salón", psk: ""), SavedTV(ip: "2", name: "Cuarto", psk: "")]
+        let saved = SavedTV.saving(SavedTV(ip: "2", name: "BRAVIA", psk: "0000"), in: list)
+        XCTAssertEqual(saved, [SavedTV(ip: "2", name: "Cuarto", psk: "0000"), SavedTV(ip: "1", name: "Salón", psk: "")])
+        XCTAssertEqual(SavedTV.decode(SavedTV.encode(saved)), saved)
+        XCTAssertEqual(SavedTV.decode(""), [])
+    }
+
     func testAuthCookieFromSetCookie() {
         let url = URL(string: "http://192.0.2.20/sony/accessControl")!
         let response = HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil,
