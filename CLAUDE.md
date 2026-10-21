@@ -1,4 +1,4 @@
-# CLAUDE.md — ¡Quién manda! (control de TVs Sony BRAVIA)
+# CLAUDE.md — Quién Manda (control de TVs Sony BRAVIA)
 
 App iOS/iPadOS gratuita para controlar TVs Sony BRAVIA por la red local. No tiene
 anuncios, no rastrea y no cobra nada; lo único de pago es un "Invítame a un café"

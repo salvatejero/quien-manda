@@ -14,10 +14,12 @@ targets:
     info:
       path: Sources/Info.plist
       properties:
-        CFBundleDisplayName: "¡Quién manda!"
+        CFBundleDisplayName: "Quién Manda"
         CFBundleShortVersionString: "0.1"
         CFBundleVersion: "1"
-        UILaunchScreen: {}
+        UILaunchScreen:
+          UIColorName: Fondo
+          UIImageName: Splash
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         UISupportedInterfaceOrientations~ipad: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight, UIInterfaceOrientationPortraitUpsideDown]
         NSLocalNetworkUsageDescription: Para encontrar y controlar tu TV en la red Wi-Fi.
@@ -27,6 +29,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: es.julia.angela.app.quienmanda
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         TARGETED_DEVICE_FAMILY: "1,2"
   SonyMandoTests:
     type: bundle.unit-test

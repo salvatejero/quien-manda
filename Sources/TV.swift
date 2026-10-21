@@ -96,7 +96,7 @@ final class TV {
 
     private func register(pin: String?) async throws {
         let params: [Any] = [
-            ["clientid": "sonymando:\(Self.clientID)", "nickname": "¡Quién manda!", "level": "private"],
+            ["clientid": "sonymando:\(Self.clientID)", "nickname": "Quién Manda", "level": "private"],
             [["value": "yes", "function": "WOL"]],
         ]
         var extra: [String: String] = [:]

@@ -42,6 +42,22 @@ extension Font {
     static func display(_ size: CGFloat, _ weight: Weight = .heavy) -> Font { .system(size: size, weight: weight) }
 }
 
+/// Icono de `resources/quien-manda/iconos-ui` (24 pt, trazo de 2 pt); toma el color del texto.
+struct Icon: View {
+    let name: String
+    var size: CGFloat = 24
+    @Environment(\.k) private var k
+
+    init(_ name: String, size: CGFloat = 24) {
+        self.name = name
+        self.size = size
+    }
+
+    var body: some View {
+        Image(name).resizable().frame(width: size * k, height: size * k).accessibilityHidden(true)
+    }
+}
+
 struct KeyStyle: ButtonStyle {
     enum Kind { case normal, ghost, tab, primary, danger, dark }
     var kind: Kind = .normal
@@ -99,14 +115,15 @@ struct Card: ViewModifier {
 // MARK: - Conexión
 
 struct RootView: View {
-    enum Stage: String { case discover, pin, remote }
+    enum Stage: String { case splash, discover, pin, remote }
 
     @State private var tv = TV()
     @State private var discovery = Discovery()
     @AppStorage("ip") private var ip = ""
     @AppStorage("psk") private var psk = ""
     @AppStorage("name") private var name = ""
-    @State private var stage = Stage.discover
+    /// Con una TV guardada se arranca en el splash mientras reconecta.
+    @State private var stage: Stage = UserDefaults.standard.string(forKey: "ip")?.isEmpty == false ? .splash : .discover
     @State private var busyIP: String?
     @State private var message: String?
 
@@ -118,6 +135,8 @@ struct RootView: View {
                 Color.s100.ignoresSafeArea()
                 Group {
                     switch stage {
+                    case .splash:
+                        EmptyView()
                     case .discover:
                         DiscoverView(discovery: discovery, busyIP: busyIP, message: message,
                                      onClose: tv.isConnected ? { stage = .remote } : nil,
@@ -130,7 +149,9 @@ struct RootView: View {
                     }
                 }
                 .frame(width: wide && stage == .remote ? geo.size.width : 390 * k)
+                if stage == .splash { SplashView().transition(.opacity) }
             }
+            .animation(.easeOut(duration: 0.25), value: stage == .splash)
             .foregroundStyle(Color.ink)
             .environment(\.k, k)
             .environment(\.wide, wide)
@@ -147,6 +168,7 @@ struct RootView: View {
             busyIP = ip
             message = await connect(pin: nil)
             busyIP = nil
+            if stage == .splash { stage = .discover }
         }
     }
 
@@ -178,6 +200,30 @@ struct RootView: View {
     }
 }
 
+/// Continúa la pantalla de lanzamiento (fondo e icono en el mismo sitio) y añade nombre y firma.
+struct SplashView: View {
+    var body: some View {
+        ZStack {
+            Color("Fondo")
+            Image("Splash")
+                .overlay(RoundedRectangle(cornerRadius: 30).strokeBorder(Color.line))
+            Text("Quién Manda")
+                .font(.display(40))
+                .offset(y: 66 + 24 + 22)
+            VStack(spacing: 2) {
+                Text("Hecha por").foregroundStyle(Color.muted)
+                Text("Salva Tejero Software Company").fontWeight(.semibold)
+            }
+            .font(.system(size: 13))
+            .frame(maxHeight: .infinity, alignment: .bottom)
+            .padding(.bottom, 48)
+        }
+        .foregroundStyle(Color.ink)
+        .ignoresSafeArea()
+        .accessibilityElement(children: .combine)
+    }
+}
+
 struct DiscoverView: View {
     let discovery: Discovery
     let busyIP: String?
@@ -195,7 +241,7 @@ struct DiscoverView: View {
             HStack {
                 Spacer()
                 if let onClose {
-                    Button(action: onClose) { Image(systemName: "xmark") }
+                    Button(action: onClose) { Icon("cerrar") }
                         .buttonStyle(KeyStyle(kind: .ghost))
                         .frame(width: 44 * k, height: 44 * k)
                         .accessibilityLabel("Cerrar")
@@ -229,7 +275,7 @@ struct DiscoverView: View {
 
             VStack(spacing: 12 * k) {
                 Button(action: discovery.start) {
-                    Label("Buscar de nuevo", systemImage: "arrow.clockwise")
+                    Label { Text("Buscar de nuevo") } icon: { Icon("actualizar", size: 20) }
                 }
                 .buttonStyle(KeyStyle())
                 .frame(height: 52 * k)
@@ -267,8 +313,7 @@ struct DiscoverView: View {
 
     private func row(_ found: FoundTV) -> some View {
         HStack(spacing: 12 * k) {
-            Image(systemName: "tv")
-                .font(.system(size: 20 * k, weight: .medium))
+            Icon("tele", size: 22)
                 .foregroundStyle(Color.s100)
                 .frame(width: 44 * k, height: 44 * k)
                 .background(Color.ink, in: .rect(cornerRadius: 8 * k))
@@ -277,7 +322,7 @@ struct DiscoverView: View {
                 Text(found.ip).font(.system(size: 13 * k)).foregroundStyle(Color.muted)
             }
             Spacer()
-            if busyIP == found.ip { ProgressView() } else { Image(systemName: "chevron.right") }
+            if busyIP == found.ip { ProgressView() } else { Icon("derecha") }
         }
         .padding(.horizontal, 12 * k)
     }
@@ -308,8 +353,7 @@ struct Radar: View {
                     }
                 }
             }
-            Image(systemName: "tv")
-                .font(.system(size: 30 * k, weight: .medium))
+            Icon("tele", size: 32)
                 .foregroundStyle(Color.onVerde)
                 .frame(width: 72 * k, height: 72 * k)
                 .background(Color.verde, in: .circle)
@@ -330,7 +374,7 @@ struct PinView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16 * k) {
-            Button(action: onBack) { Image(systemName: "chevron.left") }
+            Button(action: onBack) { Icon("izquierda") }
                 .buttonStyle(KeyStyle(kind: .ghost))
                 .frame(width: 44 * k, height: 44 * k)
                 .accessibilityLabel("Volver")
@@ -366,7 +410,7 @@ struct PinView: View {
                 ForEach(1..<10) { pad(String($0)) }
                 Color.clear
                 pad("0")
-                Button { pin = String(pin.dropLast()); error = nil } label: { Image(systemName: "delete.left") }
+                Button { pin = String(pin.dropLast()); error = nil } label: { Icon("borrar") }
                     .buttonStyle(KeyStyle(kind: .ghost))
                     .frame(height: 60 * k)
                     .accessibilityLabel("Borrar")
