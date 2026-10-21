@@ -26,6 +26,9 @@ targets:
         NSBonjourServices: [_googlecast._tcp]
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
+    scheme:
+      testTargets: [SonyMandoTests]
+      storeKitConfiguration: Tests/Cafe.storekit # solo para probar en local (Xcode y tests)
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: es.julia.angela.app.quienmanda

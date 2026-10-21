@@ -1,3 +1,4 @@
+import StoreKit
 import SwiftUI
 
 struct RemoteView: View {
@@ -572,6 +573,12 @@ struct SettingsView: View {
                 list.move(fromOffsets: from, toOffset: to)
                 raw = PanelApp.encode(list)
             }
+
+            CoffeeSection()
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets(top: 24 * k, leading: 20 * k, bottom: 24 * k, trailing: 20 * k))
+                .moveDisabled(true)
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
@@ -582,6 +589,74 @@ struct SettingsView: View {
         .task {
             try? await tv.loadApps()
             raw = PanelApp.encode(PanelApp.merge(PanelApp.decode(raw), titles: tv.appTitles))
+        }
+    }
+}
+
+// MARK: - Invítame a un café
+
+/// Propina con StoreKit 2: tres consumibles que no desbloquean nada (PLAN §3).
+enum Coffee {
+    static let ids = ["cafe", "cafebollo", "desayuno"].map { "es.julia.angela.app.quienmanda." + $0 }
+
+    /// Termina las compras que lleguen fuera de la vista (Ask to Buy, otra sesión…); si no, se repetirían.
+    static func finishPending() async {
+        for await update in Transaction.updates {
+            if case .verified(let transaction) = update { await transaction.finish() }
+        }
+    }
+}
+
+struct CoffeeSection: View {
+    @Environment(\.k) private var k
+    @State private var thanks = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12 * k) {
+            VStack(alignment: .leading, spacing: 0) {
+                Text("Invítame a un café").font(.system(size: 17 * k, weight: .semibold))
+                Text("Quién Manda es gratis y lo seguirá siendo. Si te ahorra levantarte del sofá, puedes invitarme a algo. No desbloquea nada.")
+                    .font(.system(size: 13 * k))
+                    .foregroundStyle(Color.muted)
+            }
+            ForEach(Coffee.ids, id: \.self) { id in
+                ProductView(id: id)
+                    .productViewStyle(CoffeeStyle(k: k))
+                    .padding(EdgeInsets(top: 10 * k, leading: 16 * k, bottom: 10 * k, trailing: 12 * k))
+                    .modifier(Card(radius: 8))
+            }
+            if thanks {
+                Text("¡Gracias por el café!")
+                    .font(.system(size: 15 * k, weight: .semibold))
+                    .foregroundStyle(Color.verde)
+            }
+        }
+        .onInAppPurchaseCompletion { _, result in
+            guard case .success(.success(.verified(let transaction))) = result else { return }
+            await transaction.finish()
+            thanks = true
+        }
+    }
+}
+
+/// Fila de un café con los colores de la app: nombre, descripción y precio en el botón verde.
+struct CoffeeStyle: ProductViewStyle {
+    let k: CGFloat
+
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(spacing: 12 * k) {
+            if let product = configuration.product {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(product.displayName).font(.system(size: 15 * k, weight: .semibold))
+                    Text(product.description).font(.system(size: 13 * k)).foregroundStyle(Color.muted)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                Button(product.displayPrice, action: configuration.purchase)
+                    .buttonStyle(KeyStyle(kind: .primary, radius: 22))
+                    .frame(width: 88 * k, height: 44 * k)
+            } else {
+                ProgressView().frame(maxWidth: .infinity, minHeight: 44 * k)
+            }
         }
     }
 }

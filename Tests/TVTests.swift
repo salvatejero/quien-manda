@@ -1,3 +1,4 @@
+import StoreKitTest
 import XCTest
 @testable import SonyMando
 
@@ -52,5 +53,21 @@ final class TVTests: XCTestCase {
         XCTAssertEqual(Keychain.load("test-ip"), "abc")
         Keychain.save(nil, "test-ip")
         XCTAssertNil(Keychain.load("test-ip"))
+    }
+
+    /// Los tres cafés existen en la configuración local y se pueden comprar (y repetir: son consumibles).
+    @MainActor
+    func testCoffeeProducts() async throws {
+        let session = try SKTestSession(configurationFileNamed: "Cafe")
+        session.disableDialogs = true
+        session.clearTransactions()
+        let products = try await Product.products(for: Coffee.ids)
+        XCTAssertEqual(Set(products.map(\.id)), Set(Coffee.ids))
+        XCTAssertTrue(products.allSatisfy { $0.type == .consumable })
+        let coffee = try XCTUnwrap(products.first { $0.id == Coffee.ids[0] })
+        for _ in 0..<2 {
+            guard case .success(.verified(let transaction)) = try await coffee.purchase() else { return XCTFail("compra fallida") }
+            await transaction.finish()
+        }
     }
 }
