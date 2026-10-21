@@ -32,4 +32,11 @@ final class TVTests: XCTestCase {
         XCTAssertEqual(apps[5], PanelApp(name: "Disney+", on: false))
         XCTAssertEqual(PanelApp.encode(apps), PanelApp.defaults)
     }
+
+    func testPanelMergesWithTVApps() {
+        let stored = [PanelApp(name: "Netflix", on: true), PanelApp(name: "HBO", on: true), PanelApp(name: "Plex", on: true)]
+        let merged = PanelApp.merge(stored, titles: ["YouTube", "HBO Max", "Netflix"])
+        XCTAssertEqual(merged, [PanelApp(name: "Netflix", on: true), PanelApp(name: "HBO Max", on: true), PanelApp(name: "YouTube", on: false)])
+        XCTAssertEqual(PanelApp.merge(stored, titles: []), stored)
+    }
 }

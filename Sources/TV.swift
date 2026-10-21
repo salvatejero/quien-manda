@@ -80,6 +80,8 @@ final class TV {
         if apps == nil && !demo { apps = try await call("appControl", "getApplicationList") }
     }
 
+    var appTitles: [String] { (apps?.first as? [[String: Any]] ?? []).compactMap { $0["title"] as? String } }
+
     /// Icono que da la propia TV para la app (así no se empaquetan logos de terceros).
     func icon(_ name: String) -> URL? {
         (Self.app(apps ?? [], named: name)?["icon"] as? String).flatMap(URL.init(string:))
@@ -156,7 +158,8 @@ final class TV {
     /// result = [[{title, uri, icon}]]
     nonisolated static func app(_ result: [Any], named name: String) -> [String: Any]? {
         let list = result.first as? [[String: Any]] ?? []
-        return list.first { ($0["title"] as? String)?.localizedCaseInsensitiveContains(name) == true }
+        return list.first { ($0["title"] as? String)?.caseInsensitiveCompare(name) == .orderedSame }
+            ?? list.first { ($0["title"] as? String)?.localizedCaseInsensitiveContains(name) == true }
     }
 
     nonisolated static func soap(_ code: String) -> String {

@@ -402,22 +402,37 @@ struct RemoteView: View {
 
 // MARK: - Apps
 
-/// Apps del panel en el orden elegido; se guardan como "YouTube:1,Netflix:0,…".
+/// Apps del panel en el orden elegido; se guardan una por línea: "1YouTube\n0Plex…".
 struct PanelApp: Equatable {
     var name: String
     var on: Bool
 
-    static let defaults = "YouTube:1,Netflix:1,Prime Video:1,Apple TV:1,HBO:1,Disney+:0,Spotify:0,Plex:0"
+    /// Hasta leer la lista de la TV.
+    static let defaults = "1YouTube\n1Netflix\n1Prime Video\n1Apple TV\n1HBO\n0Disney+\n0Spotify\n0Plex"
 
     static func decode(_ raw: String) -> [PanelApp] {
-        raw.split(separator: ",").map { item in
-            let parts = item.split(separator: ":")
-            return PanelApp(name: String(parts[0]), on: parts.last == "1")
-        }
+        raw.split(separator: "\n").map { PanelApp(name: String($0.dropFirst()), on: $0.first == "1") }
     }
 
     static func encode(_ apps: [PanelApp]) -> String {
-        apps.map { "\($0.name):\($0.on ? 1 : 0)" }.joined(separator: ",")
+        apps.map { ($0.on ? "1" : "0") + $0.name }.joined(separator: "\n")
+    }
+
+    /// Ajusta el panel a las apps que tiene la TV: las guardadas conservan orden y estado y toman
+    /// el título exacto de la TV; las nuevas van al final apagadas; las que la TV no tiene, fuera.
+    static func merge(_ stored: [PanelApp], titles: [String]) -> [PanelApp] {
+        guard !titles.isEmpty else { return stored }
+        var result: [PanelApp] = []
+        for app in stored {
+            guard let title = titles.first(where: { $0.caseInsensitiveCompare(app.name) == .orderedSame })
+                    ?? titles.first(where: { $0.localizedCaseInsensitiveContains(app.name) }),
+                  !result.contains(where: { $0.name == title }) else { continue }
+            result.append(PanelApp(name: title, on: app.on))
+        }
+        for title in titles where !result.contains(where: { $0.name == title }) {
+            result.append(PanelApp(name: title, on: false))
+        }
+        return result
     }
 }
 
@@ -449,7 +464,7 @@ struct AppsSheet: View {
     var onSettings: () -> Void
     var onClose: () -> Void
     @Environment(\.k) private var k
-    @AppStorage("apps") private var raw = PanelApp.defaults
+    @AppStorage("panelApps") private var raw = PanelApp.defaults
 
     var body: some View {
         let apps = PanelApp.decode(raw).filter(\.on)
@@ -489,7 +504,10 @@ struct AppsSheet: View {
         }
         .padding(EdgeInsets(top: 16 * k, leading: 20 * k, bottom: 28 * k, trailing: 20 * k))
         .foregroundStyle(Color.ink)
-        .task { try? await tv.loadApps() }
+        .task {
+            try? await tv.loadApps()
+            raw = PanelApp.encode(PanelApp.merge(PanelApp.decode(raw), titles: tv.appTitles))
+        }
     }
 }
 
@@ -498,7 +516,7 @@ struct SettingsView: View {
     var onBack: () -> Void
     @Environment(\.k) private var k
     @AppStorage("fab") private var fab = true
-    @AppStorage("apps") private var raw = PanelApp.defaults
+    @AppStorage("panelApps") private var raw = PanelApp.defaults
 
     var body: some View {
         let apps = PanelApp.decode(raw)
@@ -561,6 +579,9 @@ struct SettingsView: View {
         .tint(Color.verde)
         .foregroundStyle(Color.ink)
         .background(Color.s100)
-        .task { try? await tv.loadApps() }
+        .task {
+            try? await tv.loadApps()
+            raw = PanelApp.encode(PanelApp.merge(PanelApp.decode(raw), titles: tv.appTitles))
+        }
     }
 }
