@@ -1,6 +1,6 @@
 name: SonyMando
 options:
-  bundleIdPrefix: com.salvito
+  bundleIdPrefix: es.julia.angela.app
   deploymentTarget:
     iOS: "18.0"
 settings:
@@ -14,7 +14,7 @@ targets:
     info:
       path: Sources/Info.plist
       properties:
-        CFBundleDisplayName: Mando TV
+        CFBundleDisplayName: "¡Quién manda!"
         CFBundleShortVersionString: "0.1"
         CFBundleVersion: "1"
         UILaunchScreen: {}
@@ -26,7 +26,7 @@ targets:
           NSAllowsLocalNetworking: true
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.salvito.sonymando
+        PRODUCT_BUNDLE_IDENTIFIER: es.julia.angela.app.quienmanda
         TARGETED_DEVICE_FAMILY: "1,2"
   SonyMandoTests:
     type: bundle.unit-test

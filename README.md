@@ -1,4 +1,4 @@
-# Mando TV
+# ¡Quién manda!
 
 Mando a distancia gratuito para TVs Sony BRAVIA (Android TV / Google TV de 2016 en
 adelante), para iPhone e iPad. No tiene anuncios ni rastreo y no tiene funciones de pago.
