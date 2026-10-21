@@ -39,4 +39,18 @@ final class TVTests: XCTestCase {
         XCTAssertEqual(merged, [PanelApp(name: "Netflix", on: true), PanelApp(name: "HBO Max", on: true), PanelApp(name: "YouTube", on: false)])
         XCTAssertEqual(PanelApp.merge(stored, titles: []), stored)
     }
+
+    func testAuthCookieFromSetCookie() {
+        let url = URL(string: "http://192.0.2.20/sony/accessControl")!
+        let response = HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil,
+                                       headerFields: ["Set-Cookie": "auth=abc123; Path=/sony/; Max-Age=1209600"])!
+        XCTAssertEqual(TV.authCookie(response), "abc123")
+    }
+
+    func testKeychainRoundTrip() {
+        Keychain.save("abc", "test-ip")
+        XCTAssertEqual(Keychain.load("test-ip"), "abc")
+        Keychain.save(nil, "test-ip")
+        XCTAssertNil(Keychain.load("test-ip"))
+    }
 }

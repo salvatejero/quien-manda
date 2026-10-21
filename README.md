@@ -39,6 +39,7 @@ xcodebuild test -project SonyMando.xcodeproj -scheme SonyMando \
 | Dos columnas en pantalla ancha (iPhone Duo abierto, iPad horizontal) | ✅ simulador |
 | Modo demo sin TV (`-screen`, `-page`, `-sheet`) | ✅ |
 | Identidad: icono (oscuro y tintado), splash y 27 iconos propios de `resources/quien-manda` | ✅ simulador |
+| Reconexión directa al mando con la cookie del PIN guardada en el llavero | 🧪 falta probar con TV real |
 | Búsqueda por SSDP | ❌ descartada: necesita el entitlement de multicast y Bonjour + barrido ya lo cubren |
 | TouchPad, teclado de texto, háptica configurable | ⏳ fase 2 |
 | Historial, reconexión, Force Mode, onboarding | ⏳ fase 3 |
