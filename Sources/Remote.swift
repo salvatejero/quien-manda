@@ -462,14 +462,24 @@ struct Monogram: View {
         .task(id: icon) { image = await Self.load(icon) }
     }
 
-    private static var cache: [URL: UIImage] = [:]
+    static var memory: [URL: UIImage] = [:]
+    /// Caches/iconos: sobrevive a los reinicios (iOS puede vaciarla si le falta espacio, y entonces se vuelven a bajar).
+    static let folder = URL.cachesDirectory.appending(path: "iconos")
 
-    /// La TV responde "Content-Type: Content-Type: image/png" y AsyncImage lo descarta: se decodifica a mano.
-    private static func load(_ url: URL?) async -> UIImage? {
+    /// Memoria → disco → TV. La TV responde "Content-Type: Content-Type: image/png" y AsyncImage lo descarta,
+    /// así que se decodifica a mano con UIImage(data:).
+    static func load(_ url: URL?) async -> UIImage? {
         guard let url else { return nil }
-        if let cached = cache[url] { return cached }
-        guard let (data, _) = try? await URLSession.shared.data(from: url), let image = UIImage(data: data) else { return nil }
-        cache[url] = image
+        if let image = memory[url] { return image }
+        let file = folder.appending(path: url.lastPathComponent) // nombre del paquete y actividad: único por app
+        var data = try? Data(contentsOf: file)
+        if data == nil, let (downloaded, _) = try? await URLSession.shared.data(from: url), UIImage(data: downloaded) != nil {
+            try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            try? downloaded.write(to: file)
+            data = downloaded
+        }
+        guard let image = data.flatMap(UIImage.init(data:)) else { return nil }
+        memory[url] = image
         return image
     }
 }

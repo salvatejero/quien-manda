@@ -70,4 +70,18 @@ final class TVTests: XCTestCase {
             await transaction.finish()
         }
     }
+
+    /// Un icono descargado una vez sale del disco aunque la TV ya no esté (ni la memoria).
+    @MainActor
+    func testIconDiskCache() async throws {
+        let source = FileManager.default.temporaryDirectory.appending(path: "icono-prueba.png")
+        try XCTUnwrap(UIImage(systemName: "tv")?.pngData()).write(to: source)
+        try? FileManager.default.removeItem(at: Monogram.folder.appending(path: source.lastPathComponent))
+        let downloaded = await Monogram.load(source)
+        XCTAssertNotNil(downloaded)
+        try FileManager.default.removeItem(at: source)
+        Monogram.memory = [:]
+        let fromDisk = await Monogram.load(source)
+        XCTAssertNotNil(fromDisk)
+    }
 }
