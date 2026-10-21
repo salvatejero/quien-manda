@@ -84,7 +84,7 @@ struct RemoteView: View {
     }
 
     private var fabButton: some View {
-        Button { showApps = true } label: { Image(systemName: "square.grid.2x2").font(.system(size: 20 * k, weight: .semibold)) }
+        Button { showApps = true } label: { Icon("apps", size: 24) }
             .buttonStyle(KeyStyle(kind: .dark, radius: 28))
             .frame(width: 56 * k, height: 56 * k)
             .padding(4 * k)
@@ -96,7 +96,7 @@ struct RemoteView: View {
 
     private var header: some View {
         HStack(spacing: 12 * k) {
-            Button(action: onDevices) { Image(systemName: "line.3.horizontal").font(.system(size: 20 * k, weight: .semibold)) }
+            Button(action: onDevices) { Icon("menu", size: 24) }
                 .buttonStyle(KeyStyle(kind: .ghost))
                 .frame(width: 44 * k, height: 44 * k)
                 .accessibilityLabel("Elegir dispositivo")
@@ -111,7 +111,7 @@ struct RemoteView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             Button { run(tv.isOn ? "Apagar" : "Encender") { try await tv.togglePower() } } label: {
-                Image(systemName: "power").font(.system(size: 20 * k, weight: .bold))
+                Icon("encender", size: 24)
             }
             .buttonStyle(KeyStyle(kind: .danger, radius: 22))
             .frame(width: 44 * k, height: 44 * k)
@@ -173,10 +173,10 @@ struct RemoteView: View {
             HStack(spacing: 12 * k) {
                 rocker("VOL", up: ("Subir volumen", "VolumeUp"), down: ("Bajar volumen", "VolumeDown"))
                 VStack(spacing: 10 * k) {
-                    key("Silencio", ["Mute"], icon: "speaker.slash", text: false, height: nil, outline: volume?.muted == true ? .rojo : nil)
-                    Button { withAnimation { page = 2 } } label: { Label("Entradas", systemImage: "rectangle.portrait.and.arrow.right") }
+                    key("Silencio", ["Mute"], icon: "silenciar", text: false, height: nil, outline: volume?.muted == true ? .rojo : nil)
+                    Button { withAnimation { page = 2 } } label: { Label { Text("Entradas") } icon: { Icon("entradas", size: 20) } }
                         .buttonStyle(KeyStyle())
-                    key("Guía", ["Guide", "EPG"], icon: "square.grid.2x2", height: nil)
+                    key("Guía", ["Guide", "EPG"], icon: "apps", height: nil)
                 }
                 rocker("CAN", up: ("Canal siguiente", "ChannelUp"), down: ("Canal anterior", "ChannelDown"))
             }
@@ -185,15 +185,15 @@ struct RemoteView: View {
             dpad
 
             HStack(spacing: 10 * k) {
-                key("Atrás", ["Return"], icon: "arrow.uturn.backward")
-                key("Inicio", ["Home"], icon: "house")
-                key("Menú", ["ActionMenu", "Options"], icon: "line.3.horizontal")
+                key("Atrás", ["Return"], icon: "atras")
+                key("Inicio", ["Home"], icon: "inicio")
+                key("Menú", ["ActionMenu", "Options"], icon: "menu")
             }
             HStack(spacing: 10 * k) {
-                key("Retroceder", ["Rewind"], icon: "backward", text: false)
-                key("Reproducir", ["Play"], icon: "play", text: false)
-                key("Pausa", ["Pause"], icon: "pause", text: false)
-                key("Avanzar", ["Forward"], icon: "forward", text: false)
+                key("Retroceder", ["Rewind"], icon: "retroceder", text: false)
+                key("Reproducir", ["Play"], icon: "reproducir", text: false)
+                key("Pausa", ["Pause"], icon: "pausa", text: false)
+                key("Avanzar", ["Forward"], icon: "avanzar", text: false)
             }
             Spacer(minLength: 0)
         }
@@ -201,9 +201,9 @@ struct RemoteView: View {
 
     private func rocker(_ label: String, up: (String, String), down: (String, String)) -> some View {
         VStack(spacing: 0) {
-            key(up.0, [up.1], icon: "plus", text: false, height: nil, kind: .ghost, radius: 0)
+            key(up.0, [up.1], icon: "mas", text: false, height: nil, kind: .ghost, radius: 0)
             Text(label).font(.system(size: 13 * k, weight: .semibold)).tracking(1).foregroundStyle(Color.muted)
-            key(down.0, [down.1], icon: "minus", text: false, height: nil, kind: .ghost, radius: 0)
+            key(down.0, [down.1], icon: "menos", text: false, height: nil, kind: .ghost, radius: 0)
         }
         .frame(width: 84 * k)
         .modifier(Card())
@@ -217,16 +217,16 @@ struct RemoteView: View {
                 .frame(width: cell, height: cell)
         }
         return Grid(horizontalSpacing: 0, verticalSpacing: 0) {
-            GridRow { Color.clear.frame(width: cell, height: cell); arrow("Arriba", "Up", "chevron.up"); Color.clear.frame(width: cell, height: cell) }
+            GridRow { Color.clear.frame(width: cell, height: cell); arrow("Arriba", "Up", "arriba"); Color.clear.frame(width: cell, height: cell) }
             GridRow {
-                arrow("Izquierda", "Left", "chevron.left")
+                arrow("Izquierda", "Left", "izquierda")
                 Button { send("OK", ["Confirm"]) } label: { Text("OK").font(.display(20 * k)) }
                     .buttonStyle(KeyStyle(kind: .primary, radius: 40))
                     .frame(width: cell, height: cell)
                     .accessibilityLabel("Aceptar")
-                arrow("Derecha", "Right", "chevron.right")
+                arrow("Derecha", "Right", "derecha")
             }
-            GridRow { Color.clear.frame(width: cell, height: cell); arrow("Abajo", "Down", "chevron.down"); Color.clear.frame(width: cell, height: cell) }
+            GridRow { Color.clear.frame(width: cell, height: cell); arrow("Abajo", "Down", "abajo"); Color.clear.frame(width: cell, height: cell) }
         }
         .padding(8 * k)
         .background(Color.s200, in: .circle)
@@ -302,12 +302,12 @@ struct RemoteView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14 * k) {
                 grid {
-                    tile("Opciones", "slider.horizontal.3") { send("Opciones", ["Options"]) }.disabled(!tv.has(["Options"]))
-                    tile("Descubrir", "safari") { send("Descubrir", ["Discover"]) }.disabled(!tv.has(["Discover"]))
-                    tile("Teclado", "keyboard") {}.disabled(true) // ponytail: llega con setTextForm en la fase 2
-                    tile("Web", "globe") { send("Web", ["WebBrowser", "Internet"]) }.disabled(!tv.has(["WebBrowser", "Internet"]))
-                    tile("Ajustes", "gearshape") { showSettings = true }
-                    tile("Ayuda", "questionmark.circle") { send("Ayuda", ["Help"]) }.disabled(!tv.has(["Help"]))
+                    tile("Opciones", "opciones") { send("Opciones", ["Options"]) }.disabled(!tv.has(["Options"]))
+                    tile("Descubrir", "descubrir") { send("Descubrir", ["Discover"]) }.disabled(!tv.has(["Discover"]))
+                    tile("Teclado", "teclado") {}.disabled(true) // ponytail: llega con setTextForm en la fase 2
+                    tile("Web", "web") { send("Web", ["WebBrowser", "Internet"]) }.disabled(!tv.has(["WebBrowser", "Internet"]))
+                    tile("Ajustes", "ajustes") { showSettings = true }
+                    tile("Ayuda", "ayuda") { send("Ayuda", ["Help"]) }.disabled(!tv.has(["Help"]))
                 }
                 Text("Entradas").font(.display(24 * k, .bold)).padding(.top, 6 * k)
                 VStack(spacing: 8 * k) {
@@ -323,7 +323,7 @@ struct RemoteView: View {
     private func tile(_ label: String, _ icon: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             VStack(alignment: .leading) {
-                Image(systemName: icon).font(.system(size: 22 * k))
+                Icon(icon)
                 Spacer(minLength: 0)
                 Text(label)
             }
@@ -366,8 +366,8 @@ struct RemoteView: View {
             after()
         } label: {
             switch (icon, text) {
-            case (let icon?, true): Label(label, systemImage: icon)
-            case (let icon?, false): Image(systemName: icon).font(.system(size: 20 * k, weight: .semibold))
+            case (let icon?, true): Label { Text(label) } icon: { Icon(icon, size: 20) }
+            case (let icon?, false): Icon(icon, size: 24)
             default: Text(label)
             }
         }
@@ -471,11 +471,11 @@ struct AppsSheet: View {
         VStack(alignment: .leading, spacing: 16 * k) {
             HStack(spacing: 4 * k) {
                 Text("Apps").font(.display(24 * k, .bold)).frame(maxWidth: .infinity, alignment: .leading)
-                Button(action: onSettings) { Image(systemName: "gearshape") }
+                Button(action: onSettings) { Icon("ajustes") }
                     .buttonStyle(KeyStyle(kind: .ghost))
                     .frame(width: 44 * k, height: 44 * k)
                     .accessibilityLabel("Configurar apps")
-                Button(action: onClose) { Image(systemName: "xmark") }
+                Button(action: onClose) { Icon("cerrar") }
                     .buttonStyle(KeyStyle(kind: .ghost))
                     .frame(width: 44 * k, height: 44 * k)
                     .accessibilityLabel("Cerrar")
@@ -498,7 +498,7 @@ struct AppsSheet: View {
                 }
             }
             Spacer(minLength: 0)
-            Button(action: onTVApps) { Label("Apps de la tele", systemImage: "square.grid.2x2") }
+            Button(action: onTVApps) { Label { Text("Apps de la tele") } icon: { Icon("apps", size: 20) } }
                 .buttonStyle(KeyStyle(kind: .primary))
                 .frame(height: 52 * k)
         }
@@ -523,7 +523,7 @@ struct SettingsView: View {
         List {
             Group {
                 HStack(spacing: 8 * k) {
-                    Button(action: onBack) { Image(systemName: "chevron.left") }
+                    Button(action: onBack) { Icon("izquierda") }
                         .buttonStyle(KeyStyle(kind: .ghost))
                         .frame(width: 44 * k, height: 44 * k)
                         .accessibilityLabel("Volver")

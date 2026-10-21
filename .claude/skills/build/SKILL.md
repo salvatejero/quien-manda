@@ -1,9 +1,9 @@
 ---
 name: build
-description: Generar el proyecto con xcodegen, compilar, pasar los tests y lanzar ¡Quién manda! en el simulador de iPhone o iPad. Úsala para compilar, probar, ejecutar o hacer capturas de la app.
+description: Generar el proyecto con xcodegen, compilar, pasar los tests y lanzar Quién Manda en el simulador de iPhone o iPad. Úsala para compilar, probar, ejecutar o hacer capturas de la app.
 ---
 
-# Compilar, probar y ejecutar ¡Quién manda!
+# Compilar, probar y ejecutar Quién Manda
 
 Todo se ejecuta desde la raíz del repo. Después de tocar `project.yml`, o de
 añadir o quitar ficheros en `Sources/` o `Tests/`, hay que volver a generar el proyecto.

@@ -1,6 +1,6 @@
 ---
 name: git-ops
-description: Ejecuta operaciones de git y GitHub en ¡Quién manda! (commit, push, ramas, worktrees, merge, gh issue create/close, PRs) con los mensajes y ficheros exactos que le da el agente principal.
+description: Ejecuta operaciones de git y GitHub en Quién Manda (commit, push, ramas, worktrees, merge, gh issue create/close, PRs) con los mensajes y ficheros exactos que le da el agente principal.
 model: haiku
 tools: Bash, Read
 ---

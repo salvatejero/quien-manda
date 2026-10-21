@@ -1,4 +1,4 @@
-# ¡Quién manda!
+# Quién Manda
 
 Mando a distancia gratuito para TVs Sony BRAVIA (Android TV / Google TV de 2016 en
 adelante), para iPhone e iPad. No tiene anuncios ni rastreo y no tiene funciones de pago.
@@ -38,6 +38,7 @@ xcodebuild test -project SonyMando.xcodeproj -scheme SonyMando \
 | Panel de Apps con las apps instaladas en la TV (icono de la propia TV, ordenar arrastrando) | ✅ probado con TV real |
 | Dos columnas en pantalla ancha (iPhone Duo abierto, iPad horizontal) | ✅ simulador |
 | Modo demo sin TV (`-screen`, `-page`, `-sheet`) | ✅ |
+| Identidad: icono (oscuro y tintado), splash y 27 iconos propios de `resources/quien-manda` | ✅ simulador |
 | Búsqueda por SSDP | ❌ descartada: necesita el entitlement de multicast y Bonjour + barrido ya lo cubren |
 | TouchPad, teclado de texto, háptica configurable | ⏳ fase 2 |
 | Historial, reconexión, Force Mode, onboarding | ⏳ fase 3 |
