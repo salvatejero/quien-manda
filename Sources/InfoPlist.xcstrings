@@ -1,0 +1,50 @@
+{
+  "sourceLanguage" : "es",
+  "strings" : {
+    "CFBundleDisplayName" : {
+      "shouldTranslate" : false
+    },
+    "NSLocalNetworkUsageDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Para encontrar y controlar tu TV en la red Wi-Fi."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To find and control your TV on the Wi-Fi network."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Para encontrar e controlar a tua TV na rede Wi-Fi."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per trobar i controlar la teva TV a la xarxa Wi-Fi."
+          }
+        },
+        "gl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Para atopar e controlar a túa TV na rede wifi."
+          }
+        },
+        "eu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zure telebista wifi sarean aurkitu eta kontrolatzeko."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

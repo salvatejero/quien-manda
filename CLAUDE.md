@@ -15,7 +15,7 @@ y el estado de cada funcionalidad en `README.md`.
 - **El nombre visible no puede llevar "Sony" ni "BRAVIA"** (App Store, guía 5.2.1).
 - **Lo que se paga en la app de referencia es gratis aquí.** El café es una propina
   consumible y no desbloquea nada.
-- Textos de la UI en español por ahora. Cuando llegue la fase 9 se pasan a un String Catalog.
+- Textos de la UI en español (idioma base) en `Sources/Localizable.xcstrings`, traducidos a en, pt, ca, gl y eu. Texto nuevo: literal en `Text`/`Button` o `LocalizedStringResource`/`String(localized:)`, y su traducción en el catálogo, **incluido un valor `es` explícito**: el idioma de reserva es el inglés (`CFBundleDevelopmentRegion: en`), y sin ese valor el español cae al inglés.
 
 ## Estructura
 - `Sources/TV.swift`: cliente BRAVIA (JSON-RPC `/sony/*`, IRCC SOAP y autenticación por PSK o PIN).

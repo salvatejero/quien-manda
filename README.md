@@ -51,7 +51,7 @@ xcodebuild test -project SonyMando.xcodeproj -scheme SonyMando \
 | Modo oscuro (sigue al sistema) | ✅ |
 | "Invítame a un café": 3 consumibles StoreKit 2 en Configuración (`Tests/Cafe.storekit` para probar en local) | ✅ simulador; faltan los productos en App Store Connect |
 | Temas | ⏳ fase 8 |
-| Idiomas | ⏳ fase 9 |
+| Idiomas | ✅ es, en, pt, ca, gl, eu (String Catalog) |
 
 El plan completo está en [PLAN.md](PLAN.md).
 

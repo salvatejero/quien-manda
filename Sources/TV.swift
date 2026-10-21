@@ -9,25 +9,25 @@ final class TV {
         case needsPin, badPSK, http(Int), unknownKey(String), noApp(String), badResponse
         var errorDescription: String? {
             switch self {
-            case .needsPin: "Introduce el PIN que aparece en la TV"
-            case .badPSK: "La TV no acepta esa Pre-Shared Key. Déjala vacía para usar el PIN."
+            case .needsPin: String(localized: "Introduce el PIN que aparece en la TV")
+            case .badPSK: String(localized: "La TV no acepta esa Pre-Shared Key. Déjala vacía para usar el PIN.")
             case .http(let code): Self.text(code)
-            case .unknownKey(let name): "Tecla no disponible: \(name)"
-            case .noApp(let name): "La tele no tiene \(name)"
-            case .badResponse: "Respuesta inesperada de la TV"
+            case .unknownKey(let name): String(localized: "Tecla no disponible: \(name)")
+            case .noApp(let name): String(localized: "La tele no tiene \(name)")
+            case .badResponse: String(localized: "Respuesta inesperada de la TV")
             }
         }
 
         /// Códigos HTTP y de error JSON-RPC de BRAVIA, dichos para personas. El código solo sale si no lo conocemos.
         static func text(_ code: Int) -> String {
             switch code {
-            case 0: "La tele no responde. ¿Está encendida y en la misma wifi?"
-            case 401, 403: "La tele no te deja controlarla. Vuelve a vincularla con el PIN."
-            case 404, 501, 12, 14, 15: "Tu tele no admite esta orden."
-            case 2, 503, 40000: "La tele está ocupada. Prueba otra vez en un momento."
-            case 3, 5, 7: "La tele no puede hacer eso ahora mismo."
-            case 40005: "La pantalla de la tele está apagada. Enciéndela y vuelve a probar."
-            default: "La tele no ha podido hacerlo (error \(code))."
+            case 0: String(localized: "La tele no responde. ¿Está encendida y en la misma wifi?")
+            case 401, 403: String(localized: "La tele no te deja controlarla. Vuelve a vincularla con el PIN.")
+            case 404, 501, 12, 14, 15: String(localized: "Tu tele no admite esta orden.")
+            case 2, 503, 40000: String(localized: "La tele está ocupada. Prueba otra vez en un momento.")
+            case 3, 5, 7: String(localized: "La tele no puede hacer eso ahora mismo.")
+            case 40005: String(localized: "La pantalla de la tele está apagada. Enciéndela y vuelve a probar.")
+            default: String(localized: "La tele no ha podido hacerlo (error \(String(code))).")
             }
         }
     }

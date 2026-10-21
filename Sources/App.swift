@@ -207,7 +207,7 @@ struct RootView: View {
             // Depuración sin TV: `-screen remote|pin|discover` (y en remote `-page 0…2`, `-sheet apps|settings`, `-fail <código>`; en discover `-sheet tvs`).
             if let screen = UserDefaults.standard.string(forKey: "screen") {
                 tv.demo = true
-                name = "Tele"
+                name = String(localized: "Tele")
                 stage = Stage(rawValue: screen) ?? .remote
                 return
             }
@@ -263,7 +263,7 @@ struct RootView: View {
             return nil
         } catch TV.Failure.needsPin {
             stage = .pin
-            return pin == nil ? nil : "PIN incorrecto. Revisa el código de la tele."
+            return pin == nil ? nil : String(localized: "PIN incorrecto. Revisa el código de la tele.")
         } catch {
             return error.localizedDescription
         }
@@ -405,9 +405,17 @@ struct DiscoverView: View {
     private var scanText: String {
         let n = discovery.tvs.count
         if discovery.isScanning {
-            return n == 0 ? "Buscando televisores en tu red Wi-Fi…" : "Buscando… \(n) \(n == 1 ? "encontrada" : "encontradas")"
+            return switch n {
+            case 0: String(localized: "Buscando televisores en tu red Wi-Fi…")
+            case 1: String(localized: "Buscando… 1 encontrada")
+            default: String(localized: "Buscando… \(n) encontradas")
+            }
         }
-        return n == 0 ? "No se ha encontrado ninguna tele en esta red." : "\(n) \(n == 1 ? "tele encontrada" : "teles encontradas"). Elige la tuya."
+        return switch n {
+        case 0: String(localized: "No se ha encontrado ninguna tele en esta red.")
+        case 1: String(localized: "1 tele encontrada. Elige la tuya.")
+        default: String(localized: "\(n) teles encontradas. Elige la tuya.")
+        }
     }
 
     private func row(_ found: FoundTV) -> some View {
@@ -485,7 +493,7 @@ struct SavedTVsSheet: View {
                 .background(Color.ink, in: .rect(cornerRadius: 8 * k))
             VStack(alignment: .leading, spacing: 0) {
                 Text(saved.name).font(.system(size: 15 * k, weight: .semibold)).lineLimit(1)
-                Text(saved.ip == current ? "\(saved.ip) · Conectada" : saved.ip)
+                Text(saved.ip == current ? "\(saved.ip) · Conectada" : "\(saved.ip)")
                     .font(.system(size: 13 * k)).foregroundStyle(Color.muted)
             }
             Spacer()
