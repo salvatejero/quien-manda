@@ -12,7 +12,6 @@ struct RemoteView: View {
     @State private var status = "Lista para enviar órdenes"
     @State private var toast: String?
     @State private var volume: TV.Volume?
-    @State private var channel = ""
     @State private var input = ""
     @State private var showApps = UserDefaults.standard.string(forKey: "sheet") == "apps"
     @State private var showSettings = UserDefaults.standard.string(forKey: "sheet") == "settings"
@@ -190,6 +189,7 @@ struct RemoteView: View {
                 key("Atrás", ["Return"], icon: "atras")
                 key("Inicio", ["Home"], icon: "inicio")
                 key("Menú", ["ActionMenu", "Options"], icon: "menu")
+                key("TV", ["Tv"])
             }
             HStack(spacing: 10 * k) {
                 key("Retroceder", ["Rewind"], icon: "retroceder", text: false)
@@ -239,27 +239,11 @@ struct RemoteView: View {
 
     private var numeros: some View {
         VStack(spacing: 14 * k) {
-            HStack(spacing: 8 * k) {
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("Canal").font(.system(size: 13 * k)).foregroundStyle(Color.muted)
-                    Text(channel.isEmpty ? "—" : channel).font(.display(56 * k)).frame(height: 60 * k)
-                }
-                Spacer()
-                Button("Borrar") { channel = String(channel.dropLast()) }
-                    .buttonStyle(KeyStyle(kind: .ghost, outline: .line))
-                    .frame(width: 80 * k, height: 44 * k)
-                key("Ir", ["Enter", "Confirm"], height: 44, kind: .primary) { channel = "" }
-                    .frame(width: 60 * k)
-            }
-            .padding(EdgeInsets(top: 12 * k, leading: 20 * k, bottom: 12 * k, trailing: 16 * k))
-            .frame(height: 96 * k)
-            .modifier(Card())
-
-            grid {
+            grid(spacing: 20) {
                 ForEach(1..<10) { digit($0) }
-                key("Info", ["Display"], height: 64)
+                key("Info", ["Display"], height: 72)
                 digit(0)
-                key("Ancho", ["Wide"], height: 64)
+                key("Ancho", ["Wide"], height: 72)
             }
             grid {
                 key("Audio", ["Audio"])
@@ -284,18 +268,17 @@ struct RemoteView: View {
     private func digit(_ n: Int) -> some View {
         Button {
             send("Tecla \(n)", ["Num\(n)"])
-            if channel.count < 3 { channel += "\(n)" }
         } label: {
             Text("\(n)").font(.display(28 * k, .bold))
         }
         .buttonStyle(KeyStyle())
-        .frame(height: 64 * k)
+        .frame(height: 72 * k)
         .disabled(!tv.has(["Num\(n)"]))
         .accessibilityLabel("Tecla \(n)")
     }
 
-    private func grid(@ViewBuilder _ content: () -> some View) -> some View {
-        LazyVGrid(columns: Array(repeating: GridItem(spacing: 12 * k), count: 3), spacing: 12 * k, content: content)
+    private func grid(spacing: CGFloat = 12, @ViewBuilder _ content: () -> some View) -> some View {
+        LazyVGrid(columns: Array(repeating: GridItem(spacing: spacing * k), count: 3), spacing: spacing * k, content: content)
     }
 
     // MARK: - Atajos
