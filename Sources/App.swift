@@ -147,7 +147,7 @@ struct RootView: View {
                     case .pin:
                         PinView(name: name, onBack: { stage = .discover }) { await connect(pin: $0) }
                     case .remote:
-                        RemoteView(tv: tv, name: name.isEmpty ? tv.ip : name) { message = nil; stage = .discover }
+                        RemoteView(tv: tv, name: name.isEmpty ? tv.ip : name, onDevices: { message = nil; stage = .discover }, onForget: forget)
                     }
                 }
                 .frame(width: wide && stage == .remote ? geo.size.width : 390 * k)
@@ -183,6 +183,17 @@ struct RootView: View {
             message = await connect(pin: nil)
             busyIP = nil
         }
+    }
+
+    /// Borra la TV guardada (IP, PSK, nombre y cookie del llavero) y vuelve a buscar.
+    private func forget() {
+        Keychain.save(nil, ip)
+        ip = ""
+        psk = ""
+        name = ""
+        tv = TV()
+        message = nil
+        stage = .discover
     }
 
     /// Devuelve el error que hay que enseñar, o nil si ya está conectada (o pide PIN).
