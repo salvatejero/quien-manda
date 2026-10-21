@@ -11,10 +11,23 @@ final class TV {
             switch self {
             case .needsPin: "Introduce el PIN que aparece en la TV"
             case .badPSK: "La TV no acepta esa Pre-Shared Key. Déjala vacía para usar el PIN."
-            case .http(let code): "La TV respondió \(code)"
+            case .http(let code): Self.text(code)
             case .unknownKey(let name): "Tecla no disponible: \(name)"
             case .noApp(let name): "La tele no tiene \(name)"
             case .badResponse: "Respuesta inesperada de la TV"
+            }
+        }
+
+        /// Códigos HTTP y de error JSON-RPC de BRAVIA, dichos para personas. El código solo sale si no lo conocemos.
+        static func text(_ code: Int) -> String {
+            switch code {
+            case 0: "La tele no responde. ¿Está encendida y en la misma wifi?"
+            case 401, 403: "La tele no te deja controlarla. Vuelve a vincularla con el PIN."
+            case 404, 501, 12, 14, 15: "Tu tele no admite esta orden."
+            case 2, 503, 40000: "La tele está ocupada. Prueba otra vez en un momento."
+            case 3, 5, 7: "La tele no puede hacer eso ahora mismo."
+            case 40005: "La pantalla de la tele está apagada. Enciéndela y vuelve a probar."
+            default: "La tele no ha podido hacerlo (error \(code))."
             }
         }
     }
@@ -59,7 +72,11 @@ final class TV {
     func has(_ names: [String]) -> Bool { demo || names.contains { codes[$0] != nil } }
 
     func press(_ names: [String]) async throws {
-        if demo { return }
+        if demo {
+            let fail = UserDefaults.standard.integer(forKey: "fail") // `-fail 40005` para ver el toast de error
+            if fail != 0 { throw Failure.http(fail) }
+            return
+        }
         guard let code = names.lazy.compactMap({ self.codes[$0] }).first else { throw Failure.unknownKey(names[0]) }
         var request = request("ircc")
         request.setValue("\"urn:schemas-sony-com:service:IRCC:1#X_SendIRCC\"", forHTTPHeaderField: "SOAPACTION")
@@ -154,6 +171,7 @@ final class TV {
         let (data, response): (Data, URLResponse)
         do { (data, response) = try await URLSession.shared.data(for: request, delegate: NoAuthRetry()) }
         catch URLError.cancelled { throw Failure.http(401) }
+        catch is URLError { throw Failure.http(0) } // timeout, sin red, IP que no existe…
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
             throw Failure.http((response as? HTTPURLResponse)?.statusCode ?? 0)
         }
