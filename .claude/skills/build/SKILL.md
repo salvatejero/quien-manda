@@ -1,9 +1,9 @@
 ---
 name: build
-description: Generar el proyecto con xcodegen, compilar, pasar los tests y lanzar Mando TV en el simulador de iPhone o iPad. Úsala para compilar, probar, ejecutar o hacer capturas de la app.
+description: Generar el proyecto con xcodegen, compilar, pasar los tests y lanzar ¡Quién manda! en el simulador de iPhone o iPad. Úsala para compilar, probar, ejecutar o hacer capturas de la app.
 ---
 
-# Compilar, probar y ejecutar Mando TV
+# Compilar, probar y ejecutar ¡Quién manda!
 
 Todo se ejecuta desde la raíz del repo. Después de tocar `project.yml`, o de
 añadir o quitar ficheros en `Sources/` o `Tests/`, hay que volver a generar el proyecto.
@@ -26,7 +26,7 @@ xcodebuild build -project SonyMando.xcodeproj -scheme SonyMando \
   -destination 'platform=iOS Simulator,name=iPhone Air' -derivedDataPath build -quiet
 xcrun simctl boot "iPhone Air" 2>/dev/null; open -a Simulator
 xcrun simctl install booted build/Build/Products/Debug-iphonesimulator/SonyMando.app
-xcrun simctl launch booted com.salvito.sonymando
+xcrun simctl launch booted es.julia.angela.app.quienmanda
 xcrun simctl io booted screenshot /tmp/mando.png
 ```
 Para el iPad, cambia el destino a `iPad Pro 11-inch (M5)`.
