@@ -465,19 +465,23 @@ struct Monogram: View {
     static var memory: [URL: UIImage] = [:]
     /// Caches/iconos: sobrevive a los reinicios (iOS puede vaciarla si le falta espacio, y entonces se vuelven a bajar).
     static let folder = URL.cachesDirectory.appending(path: "iconos")
+    /// Pasado un mes se vuelve a pedir a la TV, por si la app cambió de icono.
+    static let maxAge: TimeInterval = 30 * 24 * 3600
 
-    /// Memoria → disco → TV. La TV responde "Content-Type: Content-Type: image/png" y AsyncImage lo descarta,
-    /// así que se decodifica a mano con UIImage(data:).
+    /// Memoria → disco (si no ha caducado) → TV → disco caducado. La TV responde
+    /// "Content-Type: Content-Type: image/png" y AsyncImage lo descarta, así que se decodifica con UIImage(data:).
     static func load(_ url: URL?) async -> UIImage? {
         guard let url else { return nil }
         if let image = memory[url] { return image }
         let file = folder.appending(path: url.lastPathComponent) // nombre del paquete y actividad: único por app
-        var data = try? Data(contentsOf: file)
+        let saved = try? file.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate
+        var data = saved.map { Date.now.timeIntervalSince($0) < maxAge } == true ? try? Data(contentsOf: file) : nil
         if data == nil, let (downloaded, _) = try? await URLSession.shared.data(from: url), UIImage(data: downloaded) != nil {
             try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
             try? downloaded.write(to: file)
             data = downloaded
         }
+        if data == nil { data = try? Data(contentsOf: file) } // caducado y la TV no responde: mejor el viejo que la letra
         guard let image = data.flatMap(UIImage.init(data:)) else { return nil }
         memory[url] = image
         return image
