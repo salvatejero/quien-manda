@@ -2,6 +2,8 @@ import SwiftUI
 
 @main
 struct SonyMandoApp: App {
+    init() { Task { await Coffee.finishPending() } }
+
     var body: some Scene {
         WindowGroup { RootView() }
     }
