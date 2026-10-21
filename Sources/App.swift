@@ -124,6 +124,8 @@ struct RootView: View {
     @AppStorage("ip") private var ip = ""
     @AppStorage("psk") private var psk = ""
     @AppStorage("name") private var name = ""
+    @AppStorage("tvs") private var savedRaw = ""
+    @State private var showSaved = UserDefaults.standard.string(forKey: "sheet") == "tvs"
     /// Con una TV guardada se arranca en el splash mientras reconecta.
     @State private var stage: Stage = UserDefaults.standard.string(forKey: "ip")?.isEmpty == false ? .splash : .discover
     @State private var busyIP: String?
@@ -142,24 +144,33 @@ struct RootView: View {
                     case .discover:
                         DiscoverView(discovery: discovery, busyIP: busyIP, message: message,
                                      onClose: tv.isConnected ? { stage = .remote } : nil,
+                                     onSaved: SavedTV.decode(savedRaw).isEmpty ? nil : { showSaved = true },
                                      onPick: { pick(ip: $0.ip, name: $0.name, psk: "") },
                                      onManual: { pick(ip: $0, name: $0, psk: $1) })
                     case .pin:
                         PinView(name: name, onBack: { stage = .discover }) { await connect(pin: $0) }
                     case .remote:
-                        RemoteView(tv: tv, name: name.isEmpty ? tv.ip : name, onDevices: { message = nil; stage = .discover }, onForget: forget)
+                        RemoteView(tv: tv, name: name.isEmpty ? tv.ip : name) { message = nil; stage = .discover }
                     }
                 }
                 .frame(width: wide && stage == .remote ? geo.size.width : 390 * k)
                 if stage == .splash { SplashView().transition(.opacity) }
             }
             .animation(.easeOut(duration: 0.25), value: stage == .splash)
+            .sheet(isPresented: $showSaved) {
+                SavedTVsSheet(tvs: SavedTV.decode(savedRaw), current: tv.isConnected ? ip : nil,
+                              onPick: { showSaved = false; pick(ip: $0.ip, name: $0.name, psk: $0.psk) },
+                              onRename: rename, onRemove: remove, onClose: { showSaved = false })
+                    .environment(\.k, k)
+                    .presentationDetents([.medium, .large])
+                    .presentationBackground(Color.s100)
+            }
             .foregroundStyle(Color.ink)
             .environment(\.k, k)
             .environment(\.wide, wide)
         }
         .task { // reconecta con la última IP
-            // Depuración sin TV: `-screen remote|pin|discover` (y en remote `-page 0…2`, `-sheet apps|settings`).
+            // Depuración sin TV: `-screen remote|pin|discover` (y en remote `-page 0…2`, `-sheet apps|settings`; en discover `-sheet tvs`).
             if let screen = UserDefaults.standard.string(forKey: "screen") {
                 tv.demo = true
                 name = "Tele"
@@ -185,15 +196,24 @@ struct RootView: View {
         }
     }
 
-    /// Borra la TV guardada (IP, PSK, nombre y cookie del llavero) y vuelve a buscar.
-    private func forget() {
-        Keychain.save(nil, ip)
+    private func rename(_ saved: SavedTV, to newName: String) {
+        let newName = newName.trimmingCharacters(in: .whitespaces)
+        guard !newName.isEmpty else { return }
+        savedRaw = SavedTV.encode(SavedTV.decode(savedRaw).map { $0.ip == saved.ip ? SavedTV(ip: $0.ip, name: newName, psk: $0.psk) : $0 })
+        if saved.ip == ip { name = newName }
+    }
+
+    /// Borra la tele de la lista y su cookie del llavero. Si es la actual, se desconecta y deja de reconectar al abrir.
+    private func remove(_ saved: SavedTV) {
+        Keychain.save(nil, saved.ip)
+        savedRaw = SavedTV.encode(SavedTV.decode(savedRaw).filter { $0.ip != saved.ip })
+        if savedRaw == "[]" { showSaved = false }
+        guard saved.ip == ip else { return }
         ip = ""
         psk = ""
         name = ""
         tv = TV()
         message = nil
-        stage = .discover
     }
 
     /// Devuelve el error que hay que enseñar, o nil si ya está conectada (o pide PIN).
@@ -202,6 +222,9 @@ struct RootView: View {
         tv.psk = psk
         do {
             try await tv.connect(pin: pin)
+            let list = SavedTV.saving(SavedTV(ip: ip, name: name.isEmpty ? ip : name, psk: psk), in: SavedTV.decode(savedRaw))
+            savedRaw = SavedTV.encode(list)
+            name = list[0].name
             stage = .remote
             return nil
         } catch TV.Failure.needsPin {
@@ -210,6 +233,29 @@ struct RootView: View {
         } catch {
             return error.localizedDescription
         }
+    }
+}
+
+/// Teles a las que se ha conectado, la última primero. Van en JSON en "tvs"; la actual sigue en "ip", "psk" y "name".
+struct SavedTV: Codable, Equatable, Identifiable {
+    var ip: String
+    var name: String
+    var psk: String
+    var id: String { ip }
+
+    static func decode(_ raw: String) -> [SavedTV] {
+        (try? JSONDecoder().decode([SavedTV].self, from: Data(raw.utf8))) ?? []
+    }
+
+    static func encode(_ tvs: [SavedTV]) -> String {
+        String(decoding: (try? JSONEncoder().encode(tvs)) ?? Data("[]".utf8), as: UTF8.self)
+    }
+
+    /// Pone `tv` la primera. Si ya estaba (misma IP), conserva el nombre que le dio el usuario.
+    static func saving(_ tv: SavedTV, in list: [SavedTV]) -> [SavedTV] {
+        var tv = tv
+        if let old = list.first(where: { $0.ip == tv.ip }) { tv.name = old.name }
+        return [tv] + list.filter { $0.ip != tv.ip }
     }
 }
 
@@ -242,6 +288,7 @@ struct DiscoverView: View {
     let busyIP: String?
     let message: String?
     var onClose: (() -> Void)?
+    var onSaved: (() -> Void)?
     var onPick: (FoundTV) -> Void
     var onManual: (_ ip: String, _ psk: String) -> Void
     @Environment(\.k) private var k
@@ -252,6 +299,12 @@ struct DiscoverView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16 * k) {
             HStack {
+                if let onSaved {
+                    Button(action: onSaved) { Icon("menu") }
+                        .buttonStyle(KeyStyle(kind: .ghost))
+                        .frame(width: 44 * k, height: 44 * k)
+                        .accessibilityLabel("Mis teles")
+                }
                 Spacer()
                 if let onClose {
                     Button(action: onClose) { Icon("cerrar") }
@@ -336,6 +389,74 @@ struct DiscoverView: View {
             }
             Spacer()
             if busyIP == found.ip { ProgressView() } else { Icon("derecha") }
+        }
+        .padding(.horizontal, 12 * k)
+    }
+}
+
+/// Teles guardadas: tocar conecta; deslizar renombra o borra.
+struct SavedTVsSheet: View {
+    let tvs: [SavedTV]
+    let current: String?
+    var onPick: (SavedTV) -> Void
+    var onRename: (SavedTV, String) -> Void
+    var onRemove: (SavedTV) -> Void
+    var onClose: () -> Void
+    @Environment(\.k) private var k
+    @State private var renaming: SavedTV?
+    @State private var newName = ""
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8 * k) {
+            HStack {
+                Text("Mis teles").font(.display(24 * k, .bold)).frame(maxWidth: .infinity, alignment: .leading)
+                Button(action: onClose) { Icon("cerrar") }
+                    .buttonStyle(KeyStyle(kind: .ghost))
+                    .frame(width: 44 * k, height: 44 * k)
+                    .accessibilityLabel("Cerrar")
+            }
+            .padding(.horizontal, 20 * k)
+            Text("Toca una para conectarte. Desliza a la izquierda para renombrarla u olvidarla.")
+                .font(.system(size: 13 * k))
+                .foregroundStyle(Color.muted)
+                .padding(.horizontal, 20 * k)
+            List(tvs) { saved in
+                Button { onPick(saved) } label: { row(saved) }
+                    .buttonStyle(KeyStyle())
+                    .frame(height: 68 * k)
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets(top: 4 * k, leading: 20 * k, bottom: 4 * k, trailing: 20 * k))
+                    .swipeActions {
+                        Button("Olvidar", role: .destructive) { onRemove(saved) }
+                        Button("Renombrar") { newName = saved.name; renaming = saved }.tint(Color.verde)
+                    }
+            }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+        }
+        .padding(.top, 16 * k)
+        .foregroundStyle(Color.ink)
+        .alert("Renombrar", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
+            TextField("Nombre", text: $newName)
+            Button("Guardar") { if let renaming { onRename(renaming, newName) } }
+            Button("Cancelar", role: .cancel) {}
+        }
+    }
+
+    private func row(_ saved: SavedTV) -> some View {
+        HStack(spacing: 12 * k) {
+            Icon("tele", size: 22)
+                .foregroundStyle(Color.s100)
+                .frame(width: 44 * k, height: 44 * k)
+                .background(Color.ink, in: .rect(cornerRadius: 8 * k))
+            VStack(alignment: .leading, spacing: 0) {
+                Text(saved.name).font(.system(size: 15 * k, weight: .semibold)).lineLimit(1)
+                Text(saved.ip == current ? "\(saved.ip) · Conectada" : saved.ip)
+                    .font(.system(size: 13 * k)).foregroundStyle(Color.muted)
+            }
+            Spacer()
+            Icon("derecha")
         }
         .padding(.horizontal, 12 * k)
     }
