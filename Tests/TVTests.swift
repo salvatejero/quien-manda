@@ -84,4 +84,28 @@ final class TVTests: XCTestCase {
         let fromDisk = await Monogram.load(source)
         XCTAssertNotNil(fromDisk)
     }
+
+    /// Pasado el mes se vuelve a bajar; si la TV no responde, vale el icono caducado.
+    @MainActor
+    func testIconCacheExpires() async throws {
+        let source = FileManager.default.temporaryDirectory.appending(path: "icono-caduca.png")
+        let cached = Monogram.folder.appending(path: source.lastPathComponent)
+        try XCTUnwrap(UIImage(systemName: "tv")?.pngData()).write(to: source)
+        try? FileManager.default.removeItem(at: cached)
+        _ = await Monogram.load(source)
+
+        let old = Date.now.addingTimeInterval(-Monogram.maxAge - 60)
+        try FileManager.default.setAttributes([.modificationDate: old], ofItemAtPath: cached.path)
+        let newIcon = try XCTUnwrap(UIImage(systemName: "star")?.pngData())
+        try newIcon.write(to: source)
+        Monogram.memory = [:]
+        _ = await Monogram.load(source)
+        XCTAssertEqual(try Data(contentsOf: cached), newIcon)
+
+        try FileManager.default.setAttributes([.modificationDate: old], ofItemAtPath: cached.path)
+        try FileManager.default.removeItem(at: source)
+        Monogram.memory = [:]
+        let stale = await Monogram.load(source)
+        XCTAssertNotNil(stale)
+    }
 }
