@@ -129,7 +129,7 @@ struct RootView: View {
                         RemoteView(tv: tv, name: name.isEmpty ? tv.ip : name) { message = nil; stage = .discover }
                     }
                 }
-                .frame(width: (wide && stage == .remote ? 790 : 390) * k)
+                .frame(width: wide && stage == .remote ? geo.size.width : 390 * k)
             }
             .foregroundStyle(Color.ink)
             .environment(\.k, k)

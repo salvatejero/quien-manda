@@ -22,8 +22,8 @@ struct RemoteView: View {
     var body: some View {
         Group {
             if wide {
-                // Mando fijo a la izquierda; Números y Atajos a la derecha.
-                HStack(alignment: .top, spacing: 40 * k) {
+                // Mando fijo a la izquierda; Números y Atajos a la derecha. Cada uno centrado en su mitad (lejos del pliegue).
+                HStack(alignment: .top, spacing: 0) {
                     VStack(spacing: 16 * k) {
                         header
                         statusRow
@@ -33,6 +33,7 @@ struct RemoteView: View {
                     .overlay(alignment: .topTrailing) {
                         if fab { fabButton.padding(.top, 480 * k).offset(x: 16 * k) }
                     }
+                    .frame(maxWidth: .infinity)
                     VStack(spacing: 16 * k) {
                         tabs(1..<3)
                         TabView(selection: $page) {
@@ -43,6 +44,7 @@ struct RemoteView: View {
                         dots(1..<3)
                     }
                     .frame(width: 350 * k)
+                    .frame(maxWidth: .infinity)
                     .onAppear { page = max(page, 1) }
                 }
             } else {
