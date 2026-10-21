@@ -69,7 +69,7 @@ struct RemoteView: View {
         .sensoryFeedback(.impact(weight: .light), trigger: taps)
         .task { volume = try? await tv.volume() }
         .sheet(isPresented: $showApps) {
-            AppsSheet(onOpen: { app in run("Abrir \(app)") { try await tv.openApp(app) }; showApps = false },
+            AppsSheet(tv: tv, onOpen: { app in run("Abrir \(app)") { try await tv.openApp(app) }; showApps = false },
                       onTVApps: { send("Apps de la tele", ["ApplicationLauncher", "Apps"]); showApps = false },
                       onSettings: { showApps = false; showSettings = true },
                       onClose: { showApps = false })
@@ -78,7 +78,7 @@ struct RemoteView: View {
                 .presentationBackground(Color.s100)
         }
         .fullScreenCover(isPresented: $showSettings) {
-            SettingsView { showSettings = false }
+            SettingsView(tv: tv) { showSettings = false }
                 .environment(\.k, k)
         }
     }
@@ -421,21 +421,29 @@ struct PanelApp: Equatable {
     }
 }
 
-/// Inicial de la app sobre fondo oscuro (no se usan logos de terceros).
+/// Icono de la app que da la TV; mientras no llega (o si no hay), su inicial sobre fondo oscuro.
 struct Monogram: View {
     let name: String
     let size: CGFloat
+    var icon: URL?
     @Environment(\.k) private var k
     var body: some View {
-        Text(name.prefix(1))
-            .font(.display(size * 0.45 * k))
-            .foregroundStyle(Color.s100)
-            .frame(width: size * k, height: size * k)
-            .background(Color.ink, in: .rect(cornerRadius: 8 * k))
+        AsyncImage(url: icon) { image in
+            image.resizable().scaledToFill()
+        } placeholder: {
+            Text(name.prefix(1))
+                .font(.display(size * 0.45 * k))
+                .foregroundStyle(Color.s100)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color.ink)
+        }
+        .frame(width: size * k, height: size * k)
+        .clipShape(.rect(cornerRadius: 8 * k))
     }
 }
 
 struct AppsSheet: View {
+    let tv: TV
     var onOpen: (String) -> Void
     var onTVApps: () -> Void
     var onSettings: () -> Void
@@ -466,7 +474,7 @@ struct AppsSheet: View {
                 ForEach(apps, id: \.name) { app in
                     Button { onOpen(app.name) } label: {
                         VStack(spacing: 8 * k) {
-                            Monogram(name: app.name, size: 44)
+                            Monogram(name: app.name, size: 44, icon: tv.icon(app.name))
                             Text(app.name).font(.system(size: 13 * k)).lineLimit(1)
                         }
                     }
@@ -481,10 +489,12 @@ struct AppsSheet: View {
         }
         .padding(EdgeInsets(top: 16 * k, leading: 20 * k, bottom: 28 * k, trailing: 20 * k))
         .foregroundStyle(Color.ink)
+        .task { try? await tv.loadApps() }
     }
 }
 
 struct SettingsView: View {
+    let tv: TV
     var onBack: () -> Void
     @Environment(\.k) private var k
     @AppStorage("fab") private var fab = true
@@ -519,7 +529,7 @@ struct SettingsView: View {
                 VStack(spacing: 8 * k) {
                     ForEach(apps.indices, id: \.self) { i in
                         HStack(spacing: 8 * k) {
-                            Monogram(name: apps[i].name, size: 36)
+                            Monogram(name: apps[i].name, size: 36, icon: tv.icon(apps[i].name))
                             Text(apps[i].name).font(.system(size: 15 * k, weight: .semibold)).frame(maxWidth: .infinity, alignment: .leading)
                             Button {
                                 var list = apps
@@ -547,5 +557,6 @@ struct SettingsView: View {
         .tint(Color.verde)
         .foregroundStyle(Color.ink)
         .background(Color.s100)
+        .task { try? await tv.loadApps() }
     }
 }

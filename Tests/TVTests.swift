@@ -21,9 +21,9 @@ final class TVTests: XCTestCase {
     }
 
     func testAppURIMatchesTitle() {
-        let result: [Any] = [[["title": "YouTube", "uri": "yt"], ["title": "Prime Video", "uri": "pv"]]]
-        XCTAssertEqual(TV.appURI(result, named: "prime video"), "pv")
-        XCTAssertNil(TV.appURI(result, named: "Plex"))
+        let result: [Any] = [[["title": "YouTube", "uri": "yt"], ["title": "Prime Video", "uri": "pv", "icon": "http://tv/pv.png"]]]
+        XCTAssertEqual(TV.app(result, named: "prime video")?["icon"] as? String, "http://tv/pv.png")
+        XCTAssertNil(TV.app(result, named: "Plex"))
     }
 
     func testPanelAppsRoundTrip() {

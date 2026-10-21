@@ -23,7 +23,7 @@ final class TV {
     private(set) var codes: [String: String] = [:]
     private(set) var model = ""
     private(set) var isOn = true
-    private var apps: [Any]?
+    private(set) var apps: [Any]?
     /// Modo demo (`-screen` al lanzar): finge una TV con todas las teclas y no toca la red.
     var demo = false { didSet { if demo { model = "KD-55XH8096" } } }
 
@@ -71,9 +71,18 @@ final class TV {
 
     /// Abre la app cuyo título contiene `name` (la lista se pide una vez por conexión).
     func openApp(_ name: String) async throws {
-        if apps == nil { apps = try await call("appControl", "getApplicationList") }
-        guard let uri = Self.appURI(apps ?? [], named: name) else { throw Failure.noApp(name) }
+        try await loadApps()
+        guard let uri = Self.app(apps ?? [], named: name)?["uri"] as? String else { throw Failure.noApp(name) }
         _ = try await call("appControl", "setActiveApp", params: [["uri": uri]])
+    }
+
+    func loadApps() async throws {
+        if apps == nil && !demo { apps = try await call("appControl", "getApplicationList") }
+    }
+
+    /// Icono que da la propia TV para la app (así no se empaquetan logos de terceros).
+    func icon(_ name: String) -> URL? {
+        (Self.app(apps ?? [], named: name)?["icon"] as? String).flatMap(URL.init(string:))
     }
 
     private func powerIsActive() async throws -> Bool {
@@ -145,9 +154,9 @@ final class TV {
     }
 
     /// result = [[{title, uri, icon}]]
-    nonisolated static func appURI(_ result: [Any], named name: String) -> String? {
+    nonisolated static func app(_ result: [Any], named name: String) -> [String: Any]? {
         let list = result.first as? [[String: Any]] ?? []
-        return list.first { ($0["title"] as? String)?.localizedCaseInsensitiveContains(name) == true }?["uri"] as? String
+        return list.first { ($0["title"] as? String)?.localizedCaseInsensitiveContains(name) == true }
     }
 
     nonisolated static func soap(_ code: String) -> String {
