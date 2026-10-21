@@ -9,7 +9,7 @@ struct RemoteView: View {
     @Environment(\.wide) private var wide
     @AppStorage("fab") private var fab = true
     @State private var page = UserDefaults.standard.integer(forKey: "page")
-    @State private var status = "Lista para enviar órdenes"
+    @State private var status = String(localized: "Lista para enviar órdenes")
     @State private var toast: String?
     @State private var volume: TV.Volume?
     @State private var input = ""
@@ -17,7 +17,7 @@ struct RemoteView: View {
     @State private var showSettings = UserDefaults.standard.string(forKey: "sheet") == "settings"
     @State private var taps = 0
 
-    private let pages = ["Mando", "Números", "Atajos"]
+    private let pages: [LocalizedStringResource] = ["Mando", "Números", "Atajos"]
 
     var body: some View {
         Group {
@@ -105,13 +105,13 @@ struct RemoteView: View {
                 Text(tv.model).font(.display(20 * k)).lineLimit(1)
                 HStack(spacing: 8 * k) {
                     Circle().fill(tv.isOn ? Color.verde : .muted).frame(width: 8 * k, height: 8 * k)
-                    Text("\(name) · \(tv.isOn ? "Conectada" : "En espera")").lineLimit(1)
+                    Text(tv.isOn ? "\(name) · Conectada" : "\(name) · En espera").lineLimit(1)
                 }
                 .font(.system(size: 13 * k))
                 .foregroundStyle(Color.muted)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            Button { run(tv.isOn ? "Apagar" : "Encender") { try await tv.togglePower() } } label: {
+            Button { run(tv.isOn ? "Apagar" : "Encender" as LocalizedStringResource) { try await tv.togglePower() } } label: {
                 Icon("encender", size: 24)
             }
             .buttonStyle(KeyStyle(kind: .danger, radius: 22))
@@ -123,7 +123,7 @@ struct RemoteView: View {
     private func tabs(_ shown: Range<Int>) -> some View {
         HStack(spacing: 4 * k) {
             ForEach(shown, id: \.self) { n in
-                Button(pages[n]) { withAnimation { page = n } }
+                Button { withAnimation { page = n } } label: { Text(pages[n]) }
                     .buttonStyle(KeyStyle(kind: page == n ? .primary : .tab))
                     .frame(height: 44 * k)
                     .accessibilityAddTraits(page == n ? .isSelected : [])
@@ -160,7 +160,7 @@ struct RemoteView: View {
                         .frame(width: (page == n ? 20 : 8) * k, height: 8 * k)
                         .frame(width: 36 * k, height: 24 * k)
                 }
-                .accessibilityLabel("Pantalla \(pages[n])")
+                .accessibilityLabel("Pantalla \(String(localized: pages[n]))")
                 .accessibilityAddTraits(page == n ? .isSelected : [])
             }
         }
@@ -201,7 +201,7 @@ struct RemoteView: View {
         }
     }
 
-    private func rocker(_ label: String, up: (String, String), down: (String, String)) -> some View {
+    private func rocker(_ label: LocalizedStringResource, up: (LocalizedStringResource, String), down: (LocalizedStringResource, String)) -> some View {
         VStack(spacing: 0) {
             key(up.0, [up.1], icon: "mas", text: false, height: nil, kind: .ghost, radius: 0)
             Text(label).font(.system(size: 13 * k, weight: .semibold)).tracking(1).foregroundStyle(Color.muted)
@@ -214,7 +214,7 @@ struct RemoteView: View {
 
     private var dpad: some View {
         let cell = 77 * k
-        let arrow = { (label: String, name: String, icon: String) in
+        let arrow = { (label: LocalizedStringResource, name: String, icon: String) in
             key(label, [name], icon: icon, text: false, height: nil, kind: .ghost, radius: 40)
                 .frame(width: cell, height: cell)
         }
@@ -251,14 +251,14 @@ struct RemoteView: View {
                 key("TV", ["Tv"])
             }
             HStack(spacing: 12 * k) {
-                ForEach([("Rojo", "Red", Color.rojo), ("Verde", "Green", .verde), ("Amarillo", "Yellow", .mostaza), ("Azul", "Blue", .azul)], id: \.0) { label, name, color in
-                    Button { send("Tecla \(label.lowercased())", [name]) } label: {
+                ForEach([("Tecla roja", "Red", Color.rojo), ("Tecla verde", "Green", .verde), ("Tecla amarilla", "Yellow", .mostaza), ("Tecla azul", "Blue", .azul)] as [(LocalizedStringResource, String, Color)], id: \.1) { label, name, color in
+                    Button { send(label, [name]) } label: {
                         Capsule().fill(color).frame(width: 36 * k, height: 6 * k)
                     }
                     .buttonStyle(KeyStyle())
                     .frame(height: 44 * k)
                     .disabled(!tv.has([name]))
-                    .accessibilityLabel(label)
+                    .accessibilityLabel(Text(label))
                 }
             }
             Spacer(minLength: 0)
@@ -296,7 +296,7 @@ struct RemoteView: View {
                 }
                 Text("Entradas").font(.display(24 * k, .bold)).padding(.top, 6 * k)
                 VStack(spacing: 8 * k) {
-                    ForEach([("HDMI 1", "Hdmi1"), ("HDMI 2", "Hdmi2"), ("HDMI 3", "Hdmi3"), ("TV digital", "Tv")], id: \.0) { label, name in
+                    ForEach([("HDMI 1", "Hdmi1"), ("HDMI 2", "Hdmi2"), ("HDMI 3", "Hdmi3"), ("TV digital", "Tv")] as [(LocalizedStringResource, String)], id: \.1) { label, name in
                         inputRow(label, name)
                     }
                 }
@@ -305,7 +305,7 @@ struct RemoteView: View {
         .scrollIndicators(.hidden)
     }
 
-    private func tile(_ label: String, _ icon: String, action: @escaping () -> Void) -> some View {
+    private func tile(_ label: LocalizedStringResource, _ icon: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             VStack(alignment: .leading) {
                 Icon(icon)
@@ -319,11 +319,11 @@ struct RemoteView: View {
         .frame(height: 88 * k)
     }
 
-    private func inputRow(_ label: String, _ name: String) -> some View {
-        let selected = input == label
+    private func inputRow(_ label: LocalizedStringResource, _ name: String) -> some View {
+        let selected = input == name
         return Button {
-            run("Entrada \(label)") { try await tv.press([name]) }
-            input = label
+            run("Entrada \(String(localized: label))") { try await tv.press([name]) }
+            input = name
         } label: {
             HStack(spacing: 12 * k) {
                 Circle().strokeBorder(selected ? Color.verde : .muted, lineWidth: 2)
@@ -344,7 +344,7 @@ struct RemoteView: View {
     // MARK: - Envío
 
     /// Tecla IRCC: la primera de `names` que tenga la TV; si no tiene ninguna, sale deshabilitada.
-    private func key(_ label: String, _ names: [String], icon: String? = nil, text: Bool = true, height: CGFloat? = 52,
+    private func key(_ label: LocalizedStringResource, _ names: [String], icon: String? = nil, text: Bool = true, height: CGFloat? = 52,
                      kind: KeyStyle.Kind = .normal, radius: CGFloat = 8, outline: Color? = nil, after: @escaping () -> Void = {}) -> some View {
         Button {
             send(label, names)
@@ -359,10 +359,10 @@ struct RemoteView: View {
         .buttonStyle(KeyStyle(kind: kind, radius: radius, outline: outline))
         .frame(height: height.map { $0 * k })
         .disabled(!tv.has(names))
-        .accessibilityLabel(label)
+        .accessibilityLabel(Text(label))
     }
 
-    private func send(_ label: String, _ names: [String]) {
+    private func send(_ label: LocalizedStringResource, _ names: [String]) {
         let audio = names.contains { ["VolumeUp", "VolumeDown", "Mute"].contains($0) }
         run(label) {
             try await tv.press(names)
@@ -370,14 +370,14 @@ struct RemoteView: View {
         }
     }
 
-    private func run(_ label: String, _ action: @escaping () async throws -> Void) {
+    private func run(_ label: LocalizedStringResource, _ action: @escaping () async throws -> Void) {
         taps += 1
         Task {
             do {
                 try await action()
-                status = "Enviado · \(label)"
+                status = String(localized: "Enviado · \(String(localized: label))")
             } catch {
-                status = "Sin enviar · \(label)"
+                status = String(localized: "Sin enviar · \(String(localized: label))")
                 toast = error.localizedDescription
             }
         }
