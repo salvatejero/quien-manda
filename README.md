@@ -34,7 +34,10 @@ xcodebuild test -project SonyMando.xcodeproj -scheme SonyMando \
 | Encender y apagar (`setPowerStatus`) | ✅ MVP |
 | Diseño de iPad (escalado ×1,6) | ✅ MVP |
 | Autodetección: Bonjour `_googlecast._tcp` + barrido de la subred /24 | ✅ probada con TV real (encontró "Tele") |
-| UI del arquetipo: páginas Mando/Números/Atajos, panel de Apps, Configuración, «Busca tu tele» y PIN, colores de la marca (claro/oscuro) | 🧪 en `feature/ui-arquetipo`, falta probar con TV encendida |
+| UI del arquetipo: páginas Mando/Números/Atajos, panel de Apps, Configuración, «Busca tu tele» y PIN, colores de la marca (claro/oscuro) | ✅ probada con TV real |
+| Panel de Apps con las apps instaladas en la TV (icono de la propia TV, ordenar arrastrando) | ✅ probado con TV real |
+| Dos columnas en pantalla ancha (iPhone Duo abierto, iPad horizontal) | ✅ simulador |
+| Modo demo sin TV (`-screen`, `-page`, `-sheet`) | ✅ |
 | Búsqueda por SSDP | ❌ descartada: necesita el entitlement de multicast y Bonjour + barrido ya lo cubren |
 | TouchPad, teclado de texto, háptica configurable | ⏳ fase 2 |
 | Historial, reconexión, Force Mode, onboarding | ⏳ fase 3 |
