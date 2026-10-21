@@ -12,4 +12,24 @@ final class TVTests: XCTestCase {
     func testSoapWrapsCode() {
         XCTAssertTrue(TV.soap("ABC=").contains("<IRCCCode>ABC=</IRCCCode>"))
     }
+
+    func testParseVolumePrefersSpeaker() {
+        let result: [Any] = [[["target": "headphone", "volume": 5, "mute": false, "maxVolume": 100],
+                              ["target": "speaker", "volume": 24, "mute": true, "maxVolume": 80]]]
+        XCTAssertEqual(TV.parseVolume(result), TV.Volume(level: 24, max: 80, muted: true))
+        XCTAssertNil(TV.parseVolume([]))
+    }
+
+    func testAppURIMatchesTitle() {
+        let result: [Any] = [[["title": "YouTube", "uri": "yt"], ["title": "Prime Video", "uri": "pv"]]]
+        XCTAssertEqual(TV.appURI(result, named: "prime video"), "pv")
+        XCTAssertNil(TV.appURI(result, named: "Plex"))
+    }
+
+    func testPanelAppsRoundTrip() {
+        let apps = PanelApp.decode(PanelApp.defaults)
+        XCTAssertEqual(apps.count, 8)
+        XCTAssertEqual(apps[5], PanelApp(name: "Disney+", on: false))
+        XCTAssertEqual(PanelApp.encode(apps), PanelApp.defaults)
+    }
 }
