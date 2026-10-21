@@ -5,6 +5,7 @@ struct RemoteView: View {
     let tv: TV
     let name: String
     var onDevices: () -> Void
+    var onForget: () -> Void
     @Environment(\.k) private var k
     @Environment(\.wide) private var wide
     @AppStorage("fab") private var fab = true
@@ -79,7 +80,7 @@ struct RemoteView: View {
                 .presentationBackground(Color.s100)
         }
         .fullScreenCover(isPresented: $showSettings) {
-            SettingsView(tv: tv) { showSettings = false }
+            SettingsView(tv: tv, onForget: { showSettings = false; onForget() }) { showSettings = false }
                 .environment(\.k, k)
         }
     }
@@ -544,8 +545,10 @@ struct AppsSheet: View {
 
 struct SettingsView: View {
     let tv: TV
+    var onForget: () -> Void
     var onBack: () -> Void
     @Environment(\.k) private var k
+    @State private var confirmForget = false
     @AppStorage("fab") private var fab = true
     @AppStorage("panelApps") private var raw = PanelApp.defaults
 
@@ -609,6 +612,19 @@ struct SettingsView: View {
                 .listRowSeparator(.hidden)
                 .listRowInsets(EdgeInsets(top: 24 * k, leading: 20 * k, bottom: 24 * k, trailing: 20 * k))
                 .moveDisabled(true)
+
+            Button("Olvidar esta tele") { confirmForget = true }
+                .buttonStyle(KeyStyle(kind: .danger))
+                .frame(height: 48 * k)
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets(top: 0, leading: 20 * k, bottom: 24 * k, trailing: 20 * k))
+                .moveDisabled(true)
+                .confirmationDialog("¿Olvidar esta tele?", isPresented: $confirmForget, titleVisibility: .visible) {
+                    Button("Olvidar", role: .destructive, action: onForget)
+                } message: {
+                    Text("Se borran la IP, la clave y el emparejamiento. Para volver a usarla tendrás que conectarla otra vez.")
+                }
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
