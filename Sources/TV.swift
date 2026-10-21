@@ -5,10 +5,11 @@ import Foundation
 @MainActor @Observable
 final class TV {
     enum Failure: LocalizedError {
-        case needsPin, http(Int), unknownKey(String), badResponse
+        case needsPin, badPSK, http(Int), unknownKey(String), badResponse
         var errorDescription: String? {
             switch self {
             case .needsPin: "Introduce el PIN que aparece en la TV"
+            case .badPSK: "La TV no acepta esa Pre-Shared Key. Déjala vacía para usar el PIN."
             case .http(let code): "La TV respondió \(code)"
             case .unknownKey(let name): "Tecla no disponible: \(name)"
             case .badResponse: "Respuesta inesperada de la TV"
@@ -25,6 +26,9 @@ final class TV {
     /// Con PSK basta con leer los códigos; sin PSK hace falta registrarse (la 1ª vez sin PIN, la TV lo muestra).
     func connect(pin: String? = nil) async throws {
         if psk.isEmpty { try await register(pin: pin) }
+        // getRemoteControllerInfo responde sin autenticar; esto no, así que confirma que la TV aceptará las teclas.
+        do { _ = try await call("system", "getSystemInformation") }
+        catch Failure.http(401), Failure.http(403) { throw psk.isEmpty ? Failure.needsPin : Failure.badPSK }
         let result = try await call("system", "getRemoteControllerInfo")
         codes = try Self.parseCodes(result)
     }
@@ -83,7 +87,9 @@ final class TV {
 
     @discardableResult
     private func send(_ request: URLRequest) async throws -> Data {
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response): (Data, URLResponse)
+        do { (data, response) = try await URLSession.shared.data(for: request, delegate: NoAuthRetry()) }
+        catch URLError.cancelled { throw Failure.http(401) }
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         guard status == 200 else { throw Failure.http(status) }
         return data
@@ -110,4 +116,13 @@ final class TV {
         UserDefaults.standard.set(id, forKey: "clientID")
         return id
     }()
+}
+
+/// La TV contesta 401 con "WWW-Authenticate: Basic" y URLSession repite la petición por su cuenta.
+/// Un segundo actRegister cierra el PIN en la TV ("Registro cancelado"), así que se corta el reto.
+private final class NoAuthRetry: NSObject, URLSessionTaskDelegate, Sendable {
+    func urlSession(_ session: URLSession, task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge) async
+        -> (URLSession.AuthChallengeDisposition, URLCredential?) {
+        (.cancelAuthenticationChallenge, nil)
+    }
 }
