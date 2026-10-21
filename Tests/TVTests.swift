@@ -10,6 +10,12 @@ final class TVTests: XCTestCase {
         XCTAssertThrowsError(try TV.parseCodes([]))
     }
 
+    func testErrorCodesInPlainWords() {
+        XCTAssertEqual(TV.Failure.http(40005).errorDescription, "La pantalla de la tele está apagada. Enciéndela y vuelve a probar.")
+        XCTAssertFalse(TV.Failure.http(403).errorDescription!.contains("403"))
+        XCTAssertTrue(TV.Failure.http(41234).errorDescription!.contains("41234"))
+    }
+
     func testSoapWrapsCode() {
         XCTAssertTrue(TV.soap("ABC=").contains("<IRCCCode>ABC=</IRCCCode>"))
     }

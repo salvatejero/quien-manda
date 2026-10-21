@@ -114,6 +114,39 @@ struct Card: ViewModifier {
     }
 }
 
+/// Aviso de error que sube desde abajo y se va solo a los 3 s (o al tocarlo).
+struct Toast: ViewModifier {
+    @Binding var message: String?
+    @Environment(\.k) private var k
+    func body(content: Content) -> some View {
+        content
+            .overlay(alignment: .bottom) {
+                if let message {
+                    Text(message)
+                        .font(.system(size: 15 * k, weight: .medium))
+                        .foregroundStyle(Color.onVerde)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 16 * k)
+                        .padding(.vertical, 12 * k)
+                        .background(Color.rojo, in: .rect(cornerRadius: 12 * k))
+                        .padding(16 * k)
+                        .onTapGesture { self.message = nil }
+                        .task(id: message) {
+                            AccessibilityNotification.Announcement(message).post()
+                            guard (try? await Task.sleep(for: .seconds(3))) != nil else { return }
+                            self.message = nil
+                        }
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
+            .animation(.spring(duration: 0.35), value: message)
+    }
+}
+
+extension View {
+    func toast(_ message: Binding<String?>) -> some View { modifier(Toast(message: message)) }
+}
+
 // MARK: - Conexión
 
 struct RootView: View {
@@ -142,7 +175,7 @@ struct RootView: View {
                     case .splash:
                         EmptyView()
                     case .discover:
-                        DiscoverView(discovery: discovery, busyIP: busyIP, message: message,
+                        DiscoverView(discovery: discovery, busyIP: busyIP,
                                      onClose: tv.isConnected ? { stage = .remote } : nil,
                                      onSaved: SavedTV.decode(savedRaw).isEmpty ? nil : { showSaved = true },
                                      onPick: { pick(ip: $0.ip, name: $0.name, psk: "") },
@@ -157,6 +190,7 @@ struct RootView: View {
                 if stage == .splash { SplashView().transition(.opacity) }
             }
             .animation(.easeOut(duration: 0.25), value: stage == .splash)
+            .toast($message)
             .sheet(isPresented: $showSaved) {
                 SavedTVsSheet(tvs: SavedTV.decode(savedRaw), current: tv.isConnected ? ip : nil,
                               onPick: { showSaved = false; pick(ip: $0.ip, name: $0.name, psk: $0.psk) },
@@ -170,7 +204,7 @@ struct RootView: View {
             .environment(\.wide, wide)
         }
         .task { // reconecta con la última IP
-            // Depuración sin TV: `-screen remote|pin|discover` (y en remote `-page 0…2`, `-sheet apps|settings`; en discover `-sheet tvs`).
+            // Depuración sin TV: `-screen remote|pin|discover` (y en remote `-page 0…2`, `-sheet apps|settings`, `-fail <código>`; en discover `-sheet tvs`).
             if let screen = UserDefaults.standard.string(forKey: "screen") {
                 tv.demo = true
                 name = "Tele"
@@ -286,7 +320,6 @@ struct SplashView: View {
 struct DiscoverView: View {
     let discovery: Discovery
     let busyIP: String?
-    let message: String?
     var onClose: (() -> Void)?
     var onSaved: (() -> Void)?
     var onPick: (FoundTV) -> Void
@@ -317,9 +350,9 @@ struct DiscoverView: View {
 
             VStack(alignment: .leading, spacing: 8 * k) {
                 Text("Busca tu tele").font(.display(32 * k))
-                Text(message ?? scanText)
+                Text(scanText)
                     .font(.system(size: 17 * k))
-                    .foregroundStyle(message == nil ? Color.muted : .rojo)
+                    .foregroundStyle(Color.muted)
             }
 
             Radar(scanning: discovery.isScanning)

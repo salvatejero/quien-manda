@@ -10,7 +10,7 @@ struct RemoteView: View {
     @AppStorage("fab") private var fab = true
     @State private var page = UserDefaults.standard.integer(forKey: "page")
     @State private var status = "Lista para enviar órdenes"
-    @State private var failed = false
+    @State private var toast: String?
     @State private var volume: TV.Volume?
     @State private var channel = ""
     @State private var input = ""
@@ -68,6 +68,7 @@ struct RemoteView: View {
         }
         .padding(EdgeInsets(top: 20 * k, leading: 20 * k, bottom: 24 * k, trailing: 20 * k))
         .sensoryFeedback(.impact(weight: .light), trigger: taps)
+        .toast($toast)
         .task { volume = try? await tv.volume() }
         .sheet(isPresented: $showApps) {
             AppsSheet(tv: tv, onOpen: { app in run("Abrir \(app)") { try await tv.openApp(app) }; showApps = false },
@@ -135,7 +136,7 @@ struct RemoteView: View {
 
     private var statusRow: some View {
         HStack(spacing: 12 * k) {
-            Text(status).lineLimit(1).foregroundStyle(failed ? Color.rojo : .muted)
+            Text(status).lineLimit(1).foregroundStyle(Color.muted)
             Spacer(minLength: 0)
             if let volume {
                 Text(volume.muted ? "Silencio" : "Vol \(volume.level)")
@@ -392,10 +393,9 @@ struct RemoteView: View {
             do {
                 try await action()
                 status = "Enviado · \(label)"
-                failed = false
             } catch {
-                status = error.localizedDescription
-                failed = true
+                status = "Sin enviar · \(label)"
+                toast = error.localizedDescription
             }
         }
     }

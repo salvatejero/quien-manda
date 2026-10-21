@@ -37,7 +37,8 @@ xcodebuild test -project SonyMando.xcodeproj -scheme SonyMando \
 | UI del arquetipo: páginas Mando/Números/Atajos, panel de Apps, Configuración, «Busca tu tele» y PIN, colores de la marca (claro/oscuro) | ✅ probada con TV real |
 | Panel de Apps con las apps instaladas en la TV (icono de la propia TV, ordenar arrastrando) | ✅ probado con TV real |
 | Dos columnas en pantalla ancha (iPhone Duo abierto, iPad horizontal) | ✅ simulador |
-| Modo demo sin TV (`-screen`, `-page`, `-sheet`) | ✅ |
+| Modo demo sin TV (`-screen`, `-page`, `-sheet`, `-fail <código>`) | ✅ |
+| Errores en un toast que sube desde abajo, con texto claro en vez del código (401, 40005, sin red…) | ✅ simulador |
 | Identidad: icono (oscuro y tintado), splash y 27 iconos propios de `resources/quien-manda` | ✅ simulador |
 | Varias teles guardadas: «Mis teles» (icono ☰ en «Busca tu tele») para cambiar, renombrar u olvidar (borra IP, PSK y cookie del llavero) | ✅ simulador; falta probar con TV real |
 | Reconexión directa al mando con la cookie del PIN guardada en el llavero | 🧪 falta probar con TV real |
