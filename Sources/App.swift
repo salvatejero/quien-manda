@@ -33,6 +33,8 @@ extension Color {
 extension EnvironmentValues {
     /// Escala de la UI: el diseño es de 390×840 pt y se amplía hasta ×1,6 (iPad).
     @Entry var k: CGFloat = 1
+    /// Pantalla apaisada y ancha (iPhone Duo abierto, iPad en horizontal): el mando va en dos columnas.
+    @Entry var wide = false
 }
 
 extension Font {
@@ -97,7 +99,7 @@ struct Card: ViewModifier {
 // MARK: - Conexión
 
 struct RootView: View {
-    enum Stage { case discover, pin, remote }
+    enum Stage: String { case discover, pin, remote }
 
     @State private var tv = TV()
     @State private var discovery = Discovery()
@@ -110,7 +112,8 @@ struct RootView: View {
 
     var body: some View {
         GeometryReader { geo in
-            let k = min(geo.size.width / 390, geo.size.height / 840, 1.6)
+            let wide = geo.size.width > geo.size.height * 1.25
+            let k = wide ? min(geo.size.width / 790, geo.size.height / 720, 1.6) : min(geo.size.width / 390, geo.size.height / 840, 1.6)
             ZStack {
                 Color.s100.ignoresSafeArea()
                 Group {
@@ -126,12 +129,20 @@ struct RootView: View {
                         RemoteView(tv: tv, name: name.isEmpty ? tv.ip : name) { message = nil; stage = .discover }
                     }
                 }
-                .frame(width: 390 * k)
+                .frame(width: (wide && stage == .remote ? 790 : 390) * k)
             }
             .foregroundStyle(Color.ink)
             .environment(\.k, k)
+            .environment(\.wide, wide)
         }
         .task { // reconecta con la última IP
+            // Depuración sin TV: `-screen remote|pin|discover` (y en remote `-page 0…2`, `-sheet apps|settings`).
+            if let screen = UserDefaults.standard.string(forKey: "screen") {
+                tv.demo = true
+                name = "Tele"
+                stage = Stage(rawValue: screen) ?? .remote
+                return
+            }
             guard !ip.isEmpty else { return }
             busyIP = ip
             message = await connect(pin: nil)

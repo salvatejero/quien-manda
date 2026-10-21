@@ -24,6 +24,8 @@ final class TV {
     private(set) var model = ""
     private(set) var isOn = true
     private var apps: [Any]?
+    /// Modo demo (`-screen` al lanzar): finge una TV con todas las teclas y no toca la red.
+    var demo = false { didSet { if demo { model = "KD-55XH8096" } } }
 
     var isConnected: Bool { !codes.isEmpty }
 
@@ -42,9 +44,10 @@ final class TV {
     }
 
     /// Cada modelo trae sus teclas: la primera de `names` que tenga la TV.
-    func has(_ names: [String]) -> Bool { names.contains { codes[$0] != nil } }
+    func has(_ names: [String]) -> Bool { demo || names.contains { codes[$0] != nil } }
 
     func press(_ names: [String]) async throws {
+        if demo { return }
         guard let code = names.lazy.compactMap({ self.codes[$0] }).first else { throw Failure.unknownKey(names[0]) }
         var request = request("ircc")
         request.setValue("\"urn:schemas-sony-com:service:IRCC:1#X_SendIRCC\"", forHTTPHeaderField: "SOAPACTION")
@@ -61,6 +64,7 @@ final class TV {
     }
 
     func volume() async throws -> Volume {
+        if demo { return Volume(level: 24, max: 100, muted: false) }
         guard let volume = Self.parseVolume(try await call("audio", "getVolumeInformation")) else { throw Failure.badResponse }
         return volume
     }

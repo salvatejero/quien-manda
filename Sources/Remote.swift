@@ -5,45 +5,65 @@ struct RemoteView: View {
     let name: String
     var onDevices: () -> Void
     @Environment(\.k) private var k
+    @Environment(\.wide) private var wide
     @AppStorage("fab") private var fab = true
-    @State private var page = 0
+    @State private var page = UserDefaults.standard.integer(forKey: "page")
     @State private var status = "Lista para enviar órdenes"
     @State private var failed = false
     @State private var volume: TV.Volume?
     @State private var channel = ""
     @State private var input = ""
-    @State private var showApps = false
-    @State private var showSettings = false
+    @State private var showApps = UserDefaults.standard.string(forKey: "sheet") == "apps"
+    @State private var showSettings = UserDefaults.standard.string(forKey: "sheet") == "settings"
     @State private var taps = 0
 
     private let pages = ["Mando", "Números", "Atajos"]
 
     var body: some View {
-        VStack(spacing: 16 * k) {
-            header
-            tabs
-            statusRow
-            TabView(selection: $page) {
-                mando.tag(0)
-                numeros.tag(1)
-                atajos.tag(2)
+        Group {
+            if wide {
+                // Mando fijo a la izquierda; Números y Atajos a la derecha.
+                HStack(alignment: .top, spacing: 40 * k) {
+                    VStack(spacing: 16 * k) {
+                        header
+                        statusRow
+                        mando
+                    }
+                    .frame(width: 350 * k)
+                    .overlay(alignment: .topTrailing) {
+                        if fab { fabButton.padding(.top, 480 * k).offset(x: 16 * k) }
+                    }
+                    VStack(spacing: 16 * k) {
+                        tabs(1..<3)
+                        TabView(selection: $page) {
+                            numeros.tag(1)
+                            atajos.tag(2)
+                        }
+                        .tabViewStyle(.page(indexDisplayMode: .never))
+                        dots(1..<3)
+                    }
+                    .frame(width: 350 * k)
+                    .onAppear { page = max(page, 1) }
+                }
+            } else {
+                VStack(spacing: 16 * k) {
+                    header
+                    tabs(0..<3)
+                    statusRow
+                    TabView(selection: $page) {
+                        mando.tag(0)
+                        numeros.tag(1)
+                        atajos.tag(2)
+                    }
+                    .tabViewStyle(.page(indexDisplayMode: .never))
+                    dots(0..<3)
+                }
+                .overlay(alignment: .topTrailing) {
+                    if fab && page == 0 { fabButton.padding(.top, 536 * k).offset(x: 8 * k) }
+                }
             }
-            .tabViewStyle(.page(indexDisplayMode: .never))
-            dots
         }
         .padding(EdgeInsets(top: 20 * k, leading: 20 * k, bottom: 24 * k, trailing: 20 * k))
-        .overlay(alignment: .topTrailing) {
-            if fab && page == 0 {
-                Button { showApps = true } label: { Image(systemName: "square.grid.2x2").font(.system(size: 20 * k, weight: .semibold)) }
-                    .buttonStyle(KeyStyle(kind: .dark, radius: 28))
-                    .frame(width: 56 * k, height: 56 * k)
-                    .padding(4 * k)
-                    .background(Color.s100, in: .circle)
-                    .padding(.top, 556 * k)
-                    .padding(.trailing, 12 * k)
-                    .accessibilityLabel("Apps")
-            }
-        }
         .sensoryFeedback(.impact(weight: .light), trigger: taps)
         .task { volume = try? await tv.volume() }
         .sheet(isPresented: $showApps) {
@@ -59,6 +79,15 @@ struct RemoteView: View {
             SettingsView { showSettings = false }
                 .environment(\.k, k)
         }
+    }
+
+    private var fabButton: some View {
+        Button { showApps = true } label: { Image(systemName: "square.grid.2x2").font(.system(size: 20 * k, weight: .semibold)) }
+            .buttonStyle(KeyStyle(kind: .dark, radius: 28))
+            .frame(width: 56 * k, height: 56 * k)
+            .padding(4 * k)
+            .background(Color.s100, in: .circle)
+            .accessibilityLabel("Apps")
     }
 
     // MARK: - Cabecera
@@ -88,9 +117,9 @@ struct RemoteView: View {
         }
     }
 
-    private var tabs: some View {
+    private func tabs(_ shown: Range<Int>) -> some View {
         HStack(spacing: 4 * k) {
-            ForEach(pages.indices, id: \.self) { n in
+            ForEach(shown, id: \.self) { n in
                 Button(pages[n]) { withAnimation { page = n } }
                     .buttonStyle(KeyStyle(kind: page == n ? .primary : .tab))
                     .frame(height: 44 * k)
@@ -120,9 +149,9 @@ struct RemoteView: View {
         .frame(height: 20 * k)
     }
 
-    private var dots: some View {
+    private func dots(_ shown: Range<Int>) -> some View {
         HStack(spacing: 0) {
-            ForEach(pages.indices, id: \.self) { n in
+            ForEach(shown, id: \.self) { n in
                 Button { withAnimation { page = n } } label: {
                     Capsule().fill(page == n ? Color.verde : .muted)
                         .frame(width: (page == n ? 20 : 8) * k, height: 8 * k)
