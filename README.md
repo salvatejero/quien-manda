@@ -58,3 +58,19 @@ El plan completo está en [PLAN.md](PLAN.md).
 
 ## Privacidad
 La app solo habla con tu TV en la red local. No recoge ningún dato.
+
+## Licencia
+
+El código es software libre bajo la [GNU GPL v3](LICENSE): puedes usarlo, estudiarlo,
+modificarlo y redistribuirlo, siempre que lo que distribuyas lleve también la GPL v3
+y su código fuente.
+
+**La marca queda fuera de la licencia.** El nombre «Quién Manda», el icono, el splash y
+todo lo que hay en `resources/quien-manda` y en `Sources/Assets.xcassets` son
+© Salva Tejero Software Company, con todos los derechos reservados. Si publicas una
+versión propia, tiene que llevar otro nombre y otro icono.
+
+Para contribuir hay que aceptar el acuerdo de contribución (CLA) de [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
+Sony y BRAVIA son marcas de Sony Group Corporation. Este proyecto no está afiliado
+a Sony ni cuenta con su respaldo.
