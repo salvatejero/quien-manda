@@ -41,6 +41,7 @@ xcodebuild test -project SonyMando.xcodeproj -scheme SonyMando \
 | Errores en un toast que sube desde abajo, con texto claro en vez del código (401, 40005, sin red…) | ✅ simulador |
 | Identidad: icono (oscuro y tintado), splash y 27 iconos propios de `resources/quien-manda` | ✅ simulador |
 | Varias teles guardadas: «Mis teles» (icono ☰ en «Busca tu tele») para cambiar, renombrar u olvidar (borra IP, PSK y cookie del llavero) | ✅ simulador; falta probar con TV real |
+| Bug: tras un rato en segundo plano las teclas fallaban («La tele no responde» / «no admite esta orden»). Se reintenta una vez si la conexión keep-alive llega muerta (-1005); fallos de red en el log (`category:tv`) | ✅ probado con TV real |
 | Reconexión directa al mando con la cookie del PIN guardada en el llavero | 🧪 falta probar con TV real |
 | Búsqueda por SSDP | ❌ descartada: necesita el entitlement de multicast y Bonjour + barrido ya lo cubren |
 | TouchPad, teclado de texto, háptica configurable | ⏳ fase 2 |
