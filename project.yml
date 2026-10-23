@@ -1,4 +1,4 @@
-name: SonyMando
+name: QuienManda
 options:
   bundleIdPrefix: es.julia.angela.app
   developmentLanguage: es
@@ -10,7 +10,7 @@ settings:
     SWIFT_EMIT_LOC_STRINGS: YES
     LOCALIZATION_PREFERS_STRING_CATALOGS: YES
 targets:
-  SonyMando:
+  QuienManda:
     type: application
     platform: iOS
     sources: [Sources]
@@ -31,14 +31,14 @@ targets:
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
     scheme:
-      testTargets: [SonyMandoTests]
+      testTargets: [QuienMandaTests]
       storeKitConfiguration: Tests/Cafe.storekit # solo para probar en local (Xcode y tests)
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: es.julia.angela.app.quienmanda
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         TARGETED_DEVICE_FAMILY: "1,2"
-  SonyMandoTests:
+  QuienMandaTests:
     type: bundle.unit-test
     platform: iOS
     sources: [Tests]
@@ -46,4 +46,4 @@ targets:
       base:
         GENERATE_INFOPLIST_FILE: YES
     dependencies:
-      - target: SonyMando
+      - target: QuienManda

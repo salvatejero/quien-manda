@@ -14,7 +14,7 @@ xcodegen generate -q
 
 ## Tests (criterio de terminado)
 ```sh
-xcodebuild test -project SonyMando.xcodeproj -scheme SonyMando \
+xcodebuild test -project QuienManda.xcodeproj -scheme QuienManda \
   -destination 'platform=iOS Simulator,name=iPhone Air' 2>&1 \
   | grep -E "error:|warning:|Test Case.*(passed|failed)|TEST (SUCCEEDED|FAILED)"
 ```
@@ -22,10 +22,10 @@ No uses `-quiet` sin el grep: oculta el resultado de los tests.
 
 ## Ejecutar en el simulador
 ```sh
-xcodebuild build -project SonyMando.xcodeproj -scheme SonyMando \
+xcodebuild build -project QuienManda.xcodeproj -scheme QuienManda \
   -destination 'platform=iOS Simulator,name=iPhone Air' -derivedDataPath build -quiet
 xcrun simctl boot "iPhone Air" 2>/dev/null; open -a Simulator
-xcrun simctl install booted build/Build/Products/Debug-iphonesimulator/SonyMando.app
+xcrun simctl install booted build/Build/Products/Debug-iphonesimulator/QuienManda.app
 xcrun simctl launch booted es.julia.angela.app.quienmanda
 xcrun simctl io booted screenshot /tmp/mando.png
 ```

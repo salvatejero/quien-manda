@@ -12,8 +12,8 @@ adelante), para iPhone e iPad. No tiene anuncios ni rastreo y no tiene funciones
 ## Compilar y probar
 ```sh
 xcodegen generate
-open SonyMando.xcodeproj          # o, desde la terminal:
-xcodebuild test -project SonyMando.xcodeproj -scheme SonyMando \
+open QuienManda.xcodeproj          # o, desde la terminal:
+xcodebuild test -project QuienManda.xcodeproj -scheme QuienManda \
   -destination 'platform=iOS Simulator,name=iPhone Air'
 ```
 

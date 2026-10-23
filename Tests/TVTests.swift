@@ -1,6 +1,6 @@
 import StoreKitTest
 import XCTest
-@testable import SonyMando
+@testable import QuienManda
 
 final class TVTests: XCTestCase {
     func testParseCodes() throws {
