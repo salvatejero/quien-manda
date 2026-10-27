@@ -20,7 +20,7 @@ targets:
         CFBundleDisplayName: "Quién Manda"
         CFBundleDevelopmentRegion: en # idioma de reserva si el del usuario no está traducido
         CFBundleShortVersionString: "1.0"
-        CFBundleVersion: "1"
+        CFBundleVersion: "3"
         UILaunchScreen:
           UIColorName: Fondo
           UIImageName: Splash
