@@ -179,7 +179,8 @@ struct RootView: View {
                                      onClose: tv.isConnected ? { stage = .remote } : nil,
                                      onSaved: SavedTV.decode(savedRaw).isEmpty ? nil : { showSaved = true },
                                      onPick: { pick(ip: $0.ip, name: $0.name, psk: "") },
-                                     onManual: { pick(ip: $0, name: $0, psk: $1) })
+                                     onManual: { pick(ip: $0, name: $0, psk: $1) },
+                                     onDemo: { tv.demo = true; name = String(localized: "Tele"); stage = .remote })
                     case .pin:
                         PinView(name: name, onBack: { stage = .discover }) { await connect(pin: $0) }
                     case .remote:
@@ -220,6 +221,7 @@ struct RootView: View {
     }
 
     private func pick(ip: String, name: String, psk: String) {
+        tv.demo = false
         self.ip = ip.trimmingCharacters(in: .whitespaces)
         self.name = name.trimmingCharacters(in: .whitespaces)
         self.psk = psk
@@ -324,6 +326,8 @@ struct DiscoverView: View {
     var onSaved: (() -> Void)?
     var onPick: (FoundTV) -> Void
     var onManual: (_ ip: String, _ psk: String) -> Void
+    /// Mando sin tele, para probar la app (y para la revisión de Apple, guía 2.1).
+    var onDemo: () -> Void
     @Environment(\.k) private var k
     @State private var manual = false
     @State private var manualIP = ""
@@ -379,9 +383,12 @@ struct DiscoverView: View {
                 .buttonStyle(KeyStyle())
                 .frame(height: 52 * k)
                 .disabled(discovery.isScanning)
-                Button("Escribir la IP") { manual = true }
-                    .buttonStyle(KeyStyle(kind: .ghost))
-                    .frame(height: 44 * k)
+                HStack(spacing: 12 * k) {
+                    Button("Escribir la IP") { manual = true }
+                    Button("Probar sin tele", action: onDemo)
+                }
+                .buttonStyle(KeyStyle(kind: .ghost))
+                .frame(height: 44 * k)
                 Text("¿No aparece tu tele? Comprueba que está encendida y conectada a la misma red Wi-Fi.")
                     .font(.system(size: 13 * k))
                     .foregroundStyle(Color.muted)

@@ -249,6 +249,9 @@ struct RemoteView: View {
                 key("Audio", ["Audio"])
                 key("Ayuda", ["Help"])
                 key("TV", ["Tv"])
+                key("Bajar volumen", ["VolumeDown"], icon: "menos", text: false)
+                key("Silencio", ["Mute"], icon: "silenciar", text: false, outline: volume?.muted == true ? .rojo : nil)
+                key("Subir volumen", ["VolumeUp"], icon: "mas", text: false)
             }
             HStack(spacing: 12 * k) {
                 ForEach([("Tecla roja", "Red", Color.rojo), ("Tecla verde", "Green", .verde), ("Tecla amarilla", "Yellow", .mostaza), ("Tecla azul", "Blue", .azul)] as [(LocalizedStringResource, String, Color)], id: \.1) { label, name, color in

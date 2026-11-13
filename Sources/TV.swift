@@ -40,7 +40,7 @@ final class TV {
     private(set) var apps: [Any]?
     /// Cookie "auth" del registro por PIN. Va en el llavero (por IP) y se envía a mano.
     private var auth: String?
-    /// Modo demo (`-screen` al lanzar): finge una TV con todas las teclas y no toca la red.
+    /// Modo demo ("Probar sin tele" o `-screen` al lanzar): finge una TV con todas las teclas y no toca la red.
     var demo = false { didSet { if demo { model = "KD-55XH8096" } } }
 
     var isConnected: Bool { !codes.isEmpty }
@@ -87,6 +87,7 @@ final class TV {
 
     /// IRCC no despierta la TV en standby; setPowerStatus sí.
     func togglePower() async throws {
+        if demo { isOn.toggle(); return }
         let active = try await powerIsActive()
         _ = try await call("system", "setPowerStatus", params: [["status": !active]])
         isOn = !active
@@ -100,6 +101,7 @@ final class TV {
 
     /// Abre la app cuyo título contiene `name` (la lista se pide una vez por conexión).
     func openApp(_ name: String) async throws {
+        if demo { return }
         try await loadApps()
         guard let uri = Self.app(apps ?? [], named: name)?["uri"] as? String else { throw Failure.noApp(name) }
         _ = try await call("appControl", "setActiveApp", params: [["uri": uri]])
