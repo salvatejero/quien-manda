@@ -1,4 +1,4 @@
-# Mando TV
+# Quién Manda
 
 Mando a distancia gratuito para TVs Sony BRAVIA (Android TV / Google TV de 2016 en
 adelante), para iPhone e iPad. No tiene anuncios ni rastreo y no tiene funciones de pago.
@@ -18,7 +18,7 @@ xcodebuild test -project SonyMando.xcodeproj -scheme SonyMando \
 ```
 
 ## Uso
-1. Escribe la IP de la TV (está en **Ajustes → Red → Estado de la red**).
+1. Toca tu TV en "TVs en tu red". Si no aparece, escribe su IP (está en **Ajustes → Red → Estado de la red**).
 2. Si configuraste una Pre-Shared Key en la TV, ponla aquí. Si no, deja el campo
    vacío, pulsa "Conectar" y escribe el PIN que aparece en la TV.
 3. La app recuerda la IP y vuelve a conectarse sola al abrirla.
@@ -27,20 +27,32 @@ xcodebuild test -project SonyMando.xcodeproj -scheme SonyMando \
 
 | Funcionalidad | Estado |
 |---|---|
-| Conexión por IP manual + PSK / PIN | ✅ MVP (sin probar con TV real) |
+| Conexión por IP manual + PSK / PIN | ✅ PIN probado con TV real (BRAVIA 4K UR3); PSK incorrecta se detecta al conectar |
 | Cruceta, OK, Atrás, Inicio | ✅ MVP |
-| Números 0–9 | ✅ MVP |
+| Números 0–9 (cada tecla va directa a la tele, sin panel de canal ni «Ir») y botón TV también en Mando | ✅ simulador |
+| Volumen (−, silencio, +) también en Números | ✅ simulador |
 | Volumen ± / silencio / canal ± / entrada | ✅ MVP |
 | Encender y apagar (`setPowerStatus`) | ✅ MVP |
 | Diseño de iPad (escalado ×1,6) | ✅ MVP |
-| Búsqueda automática (SSDP) | ⏳ pendiente del entitlement de multicast de Apple |
+| Autodetección: Bonjour `_googlecast._tcp` + barrido de la subred /24 | ✅ probada con TV real (encontró "Tele") |
+| UI del arquetipo: páginas Mando/Números/Atajos, panel de Apps, Configuración, «Busca tu tele» y PIN, colores de la marca (claro/oscuro) | ✅ probada con TV real |
+| Panel de Apps con las apps instaladas en la TV (icono de la propia TV, ordenar arrastrando) | ✅ probado con TV real |
+| Dos columnas en pantalla ancha (iPhone Duo abierto, iPad horizontal) | ✅ simulador |
+| Modo demo sin TV (`-screen`, `-page`, `-sheet`, `-fail <código>`) | ✅ |
+| Errores en un toast que sube desde abajo, con texto claro en vez del código (401, 40005, sin red…) | ✅ simulador |
+| Identidad: icono (oscuro y tintado), splash y 27 iconos propios de `resources/quien-manda` | ✅ simulador |
+| Varias teles guardadas: «Mis teles» (icono ☰ en «Busca tu tele») para cambiar, renombrar u olvidar (borra IP, PSK y cookie del llavero) | ✅ simulador; falta probar con TV real |
+| Reconexión directa al mando con la cookie del PIN guardada en el llavero | 🧪 falta probar con TV real |
+| Búsqueda por SSDP | ❌ descartada: necesita el entitlement de multicast y Bonjour + barrido ya lo cubren |
 | TouchPad, teclado de texto, háptica configurable | ⏳ fase 2 |
 | Historial, reconexión, Force Mode, onboarding | ⏳ fase 3 |
-| Function Keys, Shortcuts de apps, varias TVs, estado de la TV | ⏳ fase 4 |
+| Function Keys, Shortcuts de apps, estado de la TV | ⏳ fase 4 |
 | Siri / App Intents, widgets, Centro de Control | ⏳ fase 6 |
 | Apple Watch | ⏳ fase 7 |
-| Temas, modo oscuro, "Invítame a un café" | ⏳ fase 8 |
-| Idiomas | ⏳ fase 9 |
+| Modo oscuro (sigue al sistema) | ✅ |
+| "Invítame a un café": 3 consumibles StoreKit 2 en Configuración (`Tests/Cafe.storekit` para probar en local) | ✅ simulador; faltan los productos en App Store Connect |
+| Temas | ⏳ fase 8 |
+| Idiomas | ✅ es, en, pt, ca, gl, eu (String Catalog) |
 
 El plan completo está en [PLAN.md](PLAN.md).
 

@@ -1,4 +1,4 @@
-# CLAUDE.md — Mando TV (control de TVs Sony BRAVIA)
+# CLAUDE.md — Quién Manda (control de TVs Sony BRAVIA)
 
 App iOS/iPadOS gratuita para controlar TVs Sony BRAVIA por la red local. No tiene
 anuncios, no rastrea y no cobra nada; lo único de pago es un "Invítame a un café"
@@ -15,7 +15,7 @@ y el estado de cada funcionalidad en `README.md`.
 - **El nombre visible no puede llevar "Sony" ni "BRAVIA"** (App Store, guía 5.2.1).
 - **Lo que se paga en la app de referencia es gratis aquí.** El café es una propina
   consumible y no desbloquea nada.
-- Textos de la UI en español por ahora. Cuando llegue la fase 9 se pasan a un String Catalog.
+- Textos de la UI en español (idioma base) en `Sources/Localizable.xcstrings`, traducidos a en, pt, ca, gl y eu. Texto nuevo: literal en `Text`/`Button` o `LocalizedStringResource`/`String(localized:)`, y su traducción en el catálogo, **incluido un valor `es` explícito**: el idioma de reserva es el inglés (`CFBundleDevelopmentRegion: en`), y sin ese valor el español cae al inglés.
 
 ## Estructura
 - `Sources/TV.swift`: cliente BRAVIA (JSON-RPC `/sony/*`, IRCC SOAP y autenticación por PSK o PIN).
@@ -46,8 +46,11 @@ endpoints, la autenticación, los formatos y las trampas conocidas.
 - Cada funcionalidad nueva lleva antes una issue `enhancement` y cada bug una issue
   `bug` (con `gh`, a través de `git-ops`). Los commits la referencian con `#N`.
 - **Git flow:** `main` es la rama de las releases y `develop` la de integración.
-  Cada trabajo va en `feature/<nombre>`, que sale de `develop` y vuelve con
-  `git flow feature finish` (merge `--no-ff`). Los bugs urgentes van en `hotfix/*`
+  Cada trabajo va en `feature/<nombre>`, que sale de `develop`
+  (`git flow feature start <nombre>`). Para cerrarla **no** se usa
+  `git flow feature finish`: la versión instalada (git-flow 0.4.1) hace fast-forward
+  si la rama tiene un solo commit. Se cierra con
+  `git checkout develop && git merge --no-ff feature/<nombre> && git branch -d feature/<nombre>`. Los bugs urgentes van en `hotfix/*`
   y las versiones en `release/x.y.z`, con tag en `main`. Nunca se commitea
   directamente en `main` ni en `develop`.
 - **El repo es público.** Nunca se commitean secretos, `.env`, certificados ni
@@ -55,7 +58,10 @@ endpoints, la autenticación, los formatos y las trampas conocidas.
   que no se sube. Se añade con `git add <ficheros>` concretos y se revisa el diff
   staged antes de cada commit.
 - El autor de los commits es el email noreply de GitHub, configurado solo en este repo.
-- El remoto todavía no existe; es solo local. Cuando se cree: `gh repo create --public`.
+- **Sin remoto hasta tener el MVP terminado** (probado en una TV real). Hasta
+  entonces no hay push ni issues de GitHub, y las features y bugs se apuntan en
+  el "Estado" del README. Al publicar: `gh repo create --public` y se abren las
+  issues de lo ya hecho, citando sus commits.
 - Al terminar una funcionalidad: tests en verde y una línea actualizada en el
   "Estado" del README.
 - Cada lógica no trivial lleva un test pequeño en `Tests/`. La UI se prueba a mano

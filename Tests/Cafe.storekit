@@ -1,0 +1,75 @@
+{
+  "identifier": "9A01039C-FE47-48A8-8D6F-7306D112B926",
+  "nonRenewingSubscriptions": [],
+  "products": [
+    {
+      "displayPrice": "0.99",
+      "familyShareable": false,
+      "internalID": "6700000001",
+      "localizations": [
+        {
+          "description": "Para seguir despierto mientras programo.",
+          "displayName": "Un caf\u00e9",
+          "locale": "es_ES"
+        }
+      ],
+      "productID": "es.julia.angela.app.quienmanda.cafe",
+      "referenceName": "Un caf\u00e9",
+      "type": "Consumable"
+    },
+    {
+      "displayPrice": "2.99",
+      "familyShareable": false,
+      "internalID": "6700000002",
+      "localizations": [
+        {
+          "description": "Caf\u00e9 y algo de comer.",
+          "displayName": "Caf\u00e9 con bollo",
+          "locale": "es_ES"
+        }
+      ],
+      "productID": "es.julia.angela.app.quienmanda.cafebollo",
+      "referenceName": "Caf\u00e9 con bollo",
+      "type": "Consumable"
+    },
+    {
+      "displayPrice": "4.99",
+      "familyShareable": false,
+      "internalID": "6700000003",
+      "localizations": [
+        {
+          "description": "Caf\u00e9, tostada y zumo.",
+          "displayName": "Desayuno completo",
+          "locale": "es_ES"
+        }
+      ],
+      "productID": "es.julia.angela.app.quienmanda.desayuno",
+      "referenceName": "Desayuno completo",
+      "type": "Consumable"
+    }
+  ],
+  "settings": {
+    "_applicationInternalID": "6700000000",
+    "_developerTeamID": "",
+    "_failTransactionsEnabled": false,
+    "_lastSynchronizedDate": 0,
+    "_locale": "es_ES",
+    "_storefront": "ESP",
+    "_storeKitErrors": []
+  },
+  "subscriptionGroups": [],
+  "version": {
+    "major": 4,
+    "minor": 0
+  },
+  "appPolicies": {
+    "eula": "",
+    "policies": [
+      {
+        "locale": "es_ES",
+        "policyText": "",
+        "policyURL": ""
+      }
+    ]
+  }
+}
