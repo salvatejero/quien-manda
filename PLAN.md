@@ -114,3 +114,37 @@ que investigar el protocolo.
 - Nombre de la app.
 - Precios de los cafés (por ejemplo 0,99 €, 2,99 € y 4,99 €).
 - Si el Apple Watch entra en la v1 o en la v1.1.
+
+## 7. Hoja de ruta tras la 1.0 (publicada en noviembre de 2026)
+
+Sale de revisar `TV.swift`, `Discovery.swift`, `App.swift` y `Remote.swift` con la 1.0 ya en la App Store.
+Cada punto lleva su issue al empezarlo.
+
+### 1.0.1 — arreglos
+| # | Qué | Dónde | Por qué |
+|---|---|---|---|
+| 1 | Un solo reintento con sesión nueva para el 404 y el -1005 | `TV.send` | La tele da 404 a todo unos 30 s tras encender o apagar y cierra el keep-alive en segundo plano; hoy son dos arreglos distintos sobre la misma función |
+| 2 | Órdenes en serie | `RemoteView.run` | Cada pulsación lanza un `Task` suelto: «1», «2» rápido puede llegar como 21 |
+| 3 | PSK al llavero | `@AppStorage("psk")` y el JSON `tvs` | Va en claro en `UserDefaults`; la cookie del PIN ya está en el llavero |
+| 4 | Refrescar encendido y volumen al volver a primer plano | `RemoteView` (`scenePhase`) | Solo se leen al conectar |
+| 5 | Tele que cambia de IP | `SavedTV`, `Keychain` | Todo se indexa por IP; con DHCP la tele guardada se pierde y pide PIN. Guardar `cid`/MAC y reencontrarla en el barrido |
+| 6 | Entrada activa real y HDMI 4 | `inputRow` | Marca la última pulsada, no la que dice `getPlayingContentInfo` |
+| 7 | Ocultar el tile «Teclado» hasta que exista | `atajos` | Sale deshabilitado en una app publicada |
+
+### 1.1 — mejoras de lo que hay
+8. Mantener pulsado repite (volumen, canal y cruceta).
+9. Teclado de texto con `setTextForm`.
+10. Encender desde apagado total con Wake-on-LAN (el registro ya pide la función `WOL`).
+11. Entradas reales con sus nombres (`getCurrentExternalInputsStatus`).
+12. Barra de volumen con `setAudioVolume`.
+13. Pantalla siempre encendida y háptica configurable.
+14. Dynamic Type y repaso de VoiceOver (las fuentes son fijas, `13 * k`).
+
+### 1.2 y después — nuevo
+15. Siri, Centro de Control y widgets con App Intents (exige sacar `TV` a un paquete compartido).
+16. Estado de la tele en la cabecera: qué se ve, entrada y volumen.
+17. Todas las teclas de `getRemoteControllerInfo` en una rejilla reordenable.
+18. TouchPad por gestos.
+19. Apagar la pantalla, ahorro de energía, LED y reinicio (`setPowerSavingMode`, `requestReboot`).
+20. Apple Watch (depende del 15).
+21. Rediseño Liquid Glass con la marca (Papel / Sótano): maqueta en el lienzo «Quién Manda — Prototipo iPhone» antes de tocar SwiftUI; en iOS 18 se mantiene el estilo actual.
