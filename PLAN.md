@@ -147,4 +147,5 @@ Cada punto lleva su issue al empezarlo.
 18. TouchPad por gestos.
 19. Apagar la pantalla, ahorro de energía, LED y reinicio (`setPowerSavingMode`, `requestReboot`).
 20. Apple Watch (depende del 15).
-21. Rediseño Liquid Glass con la marca (Papel / Sótano): maqueta en el lienzo «Quién Manda — Prototipo iPhone» antes de tocar SwiftUI; en iOS 18 se mantiene el estilo actual.
+21. Rediseño Liquid Glass con la marca (Papel / Sótano): maqueta en el lienzo «Quién Manda — Prototipo iPhone» antes de tocar SwiftUI; en iOS 18 se mantiene el estilo actual. Maqueta aprobada (tableros «Liquid Glass · Mando» y «Liquid Glass · Atajos y Apps»).
+22. Intentar bajar el mínimo a iOS 17. Lo único de iOS 18 visto en el código es `Mutex` (`Synchronization`) en `Discovery.resolve`, que se cambia por `OSAllocatedUnfairLock`; el resto (`@Observable`, `sensoryFeedback`, `ProductView`, `@Entry`) ya vale en iOS 17. Hay que comprobarlo compilando y en un simulador de iOS 17.
