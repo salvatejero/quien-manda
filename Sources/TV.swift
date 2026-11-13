@@ -1,5 +1,9 @@
 import Foundation
 import Security
+import os
+
+/// Fallos de red con la TV, para leerlos en Consola.app (filtro: categoría "tv").
+private let log = Logger(subsystem: "QuienManda", category: "tv")
 
 /// Cliente BRAVIA: JSON-RPC (/sony/*) + teclas IRCC por SOAP.
 /// Auth: PSK (cabecera X-Auth-PSK) o PIN (actRegister → cookie "auth", que URLSession guarda sola).
@@ -155,7 +159,10 @@ final class TV {
         request.httpBody = try JSONSerialization.data(withJSONObject: ["method": method, "params": params, "id": 1, "version": "1.0"])
         let (data, response) = try await send(request)
         let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-        if let error = json?["error"] as? [Any], let code = error.first as? Int { throw Failure.http(code) }
+        if let error = json?["error"] as? [Any], let code = error.first as? Int {
+            log.error("\(service, privacy: .public).\(method, privacy: .public) → error \(code) \(String(describing: error), privacy: .public)")
+            throw Failure.http(code)
+        }
         return (json?["result"] as? [Any] ?? [], response)
     }
 
@@ -172,9 +179,20 @@ final class TV {
     private func send(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
         let (data, response): (Data, URLResponse)
         do { (data, response) = try await URLSession.shared.data(for: request, delegate: NoAuthRetry()) }
+        catch URLError.networkConnectionLost {
+            // Tras un rato en segundo plano la TV ya ha cerrado el keep-alive y la primera petición muere con -1005.
+            // URLSession no reintenta POST, así que se repite una vez por una conexión nueva.
+            log.notice("\(request.url?.path ?? "", privacy: .public) → -1005, reintento")
+            do { (data, response) = try await URLSession.shared.data(for: request, delegate: NoAuthRetry()) }
+            catch { throw Failure.http((error as? URLError)?.code == .cancelled ? 401 : 0) }
+        }
         catch URLError.cancelled { throw Failure.http(401) }
-        catch is URLError { throw Failure.http(0) } // timeout, sin red, IP que no existe…
+        catch let error as URLError { // timeout, sin red, IP que no existe…
+            log.error("\(request.url?.path ?? "", privacy: .public) → URLError \(error.code.rawValue)")
+            throw Failure.http(0)
+        }
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+            log.error("\(request.url?.path ?? "", privacy: .public) → HTTP \((response as? HTTPURLResponse)?.statusCode ?? 0) \(String(decoding: data.prefix(300), as: UTF8.self), privacy: .public)")
             throw Failure.http((response as? HTTPURLResponse)?.statusCode ?? 0)
         }
         return (data, http)

@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct SonyMandoApp: App {
+struct QuienMandaApp: App {
     init() { Task { await Coffee.finishPending() } }
 
     var body: some Scene {

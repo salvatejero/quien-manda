@@ -1,5 +1,5 @@
 import XCTest
-@testable import SonyMando
+@testable import QuienManda
 
 final class DiscoveryTests: XCTestCase {
     func testHostsOfSlash24() {
