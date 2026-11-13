@@ -194,7 +194,6 @@ No están incluidas las sesiones de diseño en claude.ai (el prototipo, el icono
 | Conexión por IP manual + PSK / PIN | ✅ PIN probado con TV real (BRAVIA 4K UR3); PSK incorrecta se detecta al conectar |
 | Cruceta, OK, Atrás, Inicio | ✅ MVP |
 | Números 0–9 (cada tecla va directa a la tele, sin panel de canal ni «Ir») y botón TV también en Mando | ✅ simulador |
-| Volumen (−, silencio, +) también en Números | ✅ simulador |
 | Volumen ± / silencio / canal ± / entrada | ✅ MVP |
 | Encender y apagar (`setPowerStatus`) | ✅ MVP |
 | Diseño de iPad (escalado ×1,6) | ✅ MVP |
