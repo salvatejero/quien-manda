@@ -26,7 +26,7 @@ extension Color {
 }
 
 /// Cristal de marca. iOS 26+: `glassEffect` nativo con el tinte de la marca. iOS 17-18: material + tinte + borde con brillo + sombra
-/// (la receta del lienzo). Con «Reducir transparencia»: color plano con borde fino.
+/// (la receta del lienzo). Con «Reducir transparencia» o «Aumentar contraste»: color plano con borde fino.
 struct BrandGlass: ViewModifier {
     enum Tint { case normal, lens, sheet, verde, rojo, ink }
     var radius: CGFloat
@@ -34,10 +34,11 @@ struct BrandGlass: ViewModifier {
     var outline: Color?
     @Environment(\.k) private var k
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorSchemeContrast) private var contrast
 
     func body(content: Content) -> some View {
         let shape = RoundedRectangle(cornerRadius: radius * k)
-        if reduceTransparency {
+        if reduceTransparency || contrast == .increased { // «Aumentar contraste» también pide fondo plano
             content
                 .background(solid, in: shape)
                 .overlay(shape.strokeBorder(outline ?? .line, lineWidth: 1))
@@ -127,4 +128,75 @@ struct GlassBackground: View {
             .blur(radius: 46 * k)
             .offset(x: x * k, y: y * k)
     }
+}
+
+// MARK: - Dynamic Type
+
+/// Texto de tamaño de diseño × k (pantalla) × factor de Dynamic Type. `cap` limita el factor (texto dentro de controles de tamaño fijo).
+struct ScaledFont: ViewModifier {
+    let size: CGFloat, weight: Font.Weight, cap: CGFloat
+    @Environment(\.k) private var k
+    @ScaledMetric private var ts: CGFloat = 1
+
+    func body(content: Content) -> some View {
+        content.font(.system(size: size * k * TextScale.factor(ts, cap: cap), weight: weight))
+    }
+}
+
+enum TextScale {
+    static func factor(_ ts: CGFloat, cap: CGFloat = .infinity) -> CGFloat { min(ts, cap) }
+}
+
+/// Alto mínimo `h·k` que crece si el contenido (texto grande) no cabe; nunca se queda en un alto fijo que recorte.
+struct MinHeight: ViewModifier {
+    let h: CGFloat
+    @Environment(\.k) private var k
+
+    func body(content: Content) -> some View {
+        content.frame(minHeight: h * k).fixedSize(horizontal: false, vertical: true)
+    }
+}
+
+/// Icono + texto; con tamaños de accesibilidad, solo el icono (el texto no cabe en las teclas estrechas) y el botón pone su `accessibilityLabel`.
+struct AdaptiveLabel: LabelStyle {
+    @Environment(\.dynamicTypeSize) private var type
+    @Environment(\.k) private var k
+
+    func makeBody(configuration: Configuration) -> some View {
+        if type.isAccessibilitySize {
+            configuration.icon
+        } else {
+            HStack(spacing: 8 * k) { configuration.icon; configuration.title }
+        }
+    }
+}
+
+/// Con tamaños de accesibilidad siempre scroll (ViewThatFits no mide bien las LazyVGrid); si no, solo cuando no cabe.
+struct ScrollIfNeeded: ViewModifier {
+    @Environment(\.dynamicTypeSize) private var type
+
+    func body(content: Content) -> some View {
+        if type.isAccessibilitySize {
+            ScrollView { content }.scrollIndicators(.hidden).scrollClipDisabled().scrollBounceBehavior(.basedOnSize)
+        } else {
+            ViewThatFits(in: .vertical) {
+                content
+                ScrollView { content }.scrollIndicators(.hidden).scrollClipDisabled().scrollBounceBehavior(.basedOnSize)
+            }
+        }
+    }
+}
+
+extension View {
+    func scaledFont(_ size: CGFloat, _ weight: Font.Weight = .regular, cap: CGFloat = .infinity) -> some View {
+        modifier(ScaledFont(size: size, weight: weight, cap: cap))
+    }
+
+    /// Tope de Dynamic Type: más allá de accesibilidad 2 el mando deja de caber. Hay que repetirlo en cada hoja (no lo heredan).
+    func capTypeSize() -> some View { dynamicTypeSize(...DynamicTypeSize.accessibility2) }
+
+    func minHeight(_ h: CGFloat) -> some View { modifier(MinHeight(h: h)) }
+
+    /// Tal cual si cabe; si no (texto grande, pantalla pequeña), dentro de un scroll.
+    func scrollIfNeeded() -> some View { modifier(ScrollIfNeeded()) }
 }

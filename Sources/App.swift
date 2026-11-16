@@ -18,7 +18,7 @@ extension Color {
     static let s100 = dyn(0xF4F1EA, 0x141110) // = ground del cristal
     static let s200 = dyn(0xF4F1EA, 0x211B17)
     static let ink = dyn(0x141110, 0xF1E6D0)
-    static let muted = dyn(0x6B5A45, 0xC9B99A)
+    static let muted = dyn(0x514435, 0xD4C7AE) // texto ≥ 4,5:1 hasta sobre las manchas del fondo (antes 6B5A45 / C9B99A, ver Tests)
     static let verde = dyn(0x35693F, 0x6FB07C)
     static let onVerde = dyn(0xFFFFFF, 0x141110)
     static let rojo = dyn(0xB3342B, 0xE0675D)
@@ -75,7 +75,9 @@ struct KeyStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         let shape = RoundedRectangle(cornerRadius: radius * k)
         return configuration.label
-            .font(.system(size: 15 * k, weight: .semibold))
+            .scaledFont(15, .semibold)
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
             .foregroundStyle(foreground)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .modifier(Surface(kind: kind, radius: radius, outline: outline, pressed: configuration.isPressed))
@@ -131,7 +133,7 @@ struct Toast: ViewModifier {
             .overlay(alignment: .bottom) {
                 if let message {
                     Text(message)
-                        .font(.system(size: 15 * k, weight: .medium))
+                        .scaledFont(15, .medium)
                         .foregroundStyle(Color.onVerde)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 16 * k)
@@ -208,12 +210,14 @@ struct RootView: View {
                               onPick: { showSaved = false; pick(ip: $0.ip, name: $0.name, psk: $0.psk, castID: $0.castID) },
                               onRename: rename, onRemove: remove, onClose: { showSaved = false })
                     .environment(\.k, k)
+                    .capTypeSize()
                     .presentationDetents([.medium, .large])
                     .glassSheet()
             }
             .foregroundStyle(Color.ink)
             .environment(\.k, k)
             .environment(\.wide, wide)
+            .capTypeSize()
         }
         .task { // reconecta con la última IP
             // Depuración sin TV: `-screen remote|pin|discover` (y en remote `-page 0…2`, `-sheet apps|settings`, `-fail <código>`; en discover `-sheet tvs`).
@@ -428,6 +432,7 @@ struct DiscoverView: View {
     /// Mando sin tele, para probar la app (y para la revisión de Apple, guía 2.1).
     var onDemo: () -> Void
     @Environment(\.k) private var k
+    @Environment(\.dynamicTypeSize) private var type
     @State private var manual = false
     @State private var manualIP = ""
     @State private var manualPSK = ""
@@ -452,22 +457,24 @@ struct DiscoverView: View {
             .frame(height: 44 * k)
 
             VStack(alignment: .leading, spacing: 8 * k) {
-                Text("Busca tu tele").font(.display(32 * k))
+                Text("Busca tu tele").scaledFont(32, .heavy).accessibilityAddTraits(.isHeader)
                 Text(scanText)
-                    .font(.system(size: 17 * k))
+                    .scaledFont(17)
                     .foregroundStyle(Color.muted)
             }
 
-            Radar(scanning: discovery.isScanning)
-                .frame(width: 176 * k, height: 176 * k)
-                .frame(maxWidth: .infinity)
+            if !type.isAccessibilitySize { // con texto grande no hay sitio para el adorno
+                Radar(scanning: discovery.isScanning)
+                    .frame(width: 176 * k, height: 176 * k)
+                    .frame(maxWidth: .infinity)
+            }
 
             ScrollView {
                 VStack(spacing: 8 * k) {
                     ForEach(discovery.tvs) { found in
                         Button { onPick(found) } label: { row(found) }
                             .buttonStyle(KeyStyle())
-                            .frame(height: 68 * k)
+                            .minHeight(68)
                             .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                 }
@@ -480,21 +487,22 @@ struct DiscoverView: View {
                     Label { Text("Buscar de nuevo") } icon: { Icon("actualizar", size: 20) }
                 }
                 .buttonStyle(KeyStyle())
-                .frame(height: 52 * k)
+                .minHeight(52)
                 .disabled(discovery.isScanning)
                 HStack(spacing: 12 * k) {
                     Button("Escribir la IP") { manual = true }
                     Button("Probar sin tele", action: onDemo)
                 }
                 .buttonStyle(KeyStyle(radius: 22))
-                .frame(height: 44 * k)
+                .minHeight(44)
                 Text("¿No aparece tu tele? Comprueba que está encendida y conectada a la misma red Wi-Fi.")
-                    .font(.system(size: 13 * k))
+                    .scaledFont(13)
                     .foregroundStyle(Color.muted)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: .infinity)
             }
         }
+        .scrollIfNeeded()
         .padding(EdgeInsets(top: 20 * k, leading: 20 * k, bottom: 24 * k, trailing: 20 * k))
         .onAppear { discovery.start() }
         .onDisappear(perform: discovery.stop)
@@ -531,13 +539,13 @@ struct DiscoverView: View {
                 .frame(width: 44 * k, height: 44 * k)
                 .background(Color.ink, in: .rect(cornerRadius: 14 * k))
             VStack(alignment: .leading, spacing: 0) {
-                Text(found.name).font(.system(size: 15 * k, weight: .semibold))
-                Text(found.ip).font(.system(size: 13 * k)).foregroundStyle(Color.muted)
+                Text(found.name).scaledFont(15, .semibold)
+                Text(found.ip).scaledFont(13).foregroundStyle(Color.muted)
             }
             Spacer()
-            if busyIP == found.ip { ProgressView() } else { Icon("derecha") }
+            if busyIP == found.ip { ProgressView().accessibilityLabel("Conectando…") } else { Icon("derecha") }
         }
-        .padding(.horizontal, 12 * k)
+        .padding(EdgeInsets(top: 8 * k, leading: 12 * k, bottom: 8 * k, trailing: 12 * k))
     }
 }
 
@@ -556,7 +564,7 @@ struct SavedTVsSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8 * k) {
             HStack {
-                Text("Mis teles").font(.display(24 * k, .bold)).frame(maxWidth: .infinity, alignment: .leading)
+                Text("Mis teles").scaledFont(24, .bold).frame(maxWidth: .infinity, alignment: .leading).accessibilityAddTraits(.isHeader)
                 Button(action: onClose) { Icon("cerrar", size: 22) }
                     .buttonStyle(KeyStyle(radius: 22))
                     .frame(width: 44 * k, height: 44 * k)
@@ -564,13 +572,14 @@ struct SavedTVsSheet: View {
             }
             .padding(.horizontal, 20 * k)
             Text("Toca una para conectarte. Desliza a la izquierda para renombrarla u olvidarla.")
-                .font(.system(size: 13 * k))
+                .scaledFont(13)
                 .foregroundStyle(Color.muted)
                 .padding(.horizontal, 20 * k)
             List(tvs) { saved in
                 Button { onPick(saved) } label: { row(saved) }
                     .buttonStyle(KeyStyle())
-                    .frame(height: 68 * k)
+                    .minHeight(68)
+                    .accessibilityAddTraits(saved.ip == current ? .isSelected : [])
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
                     .listRowInsets(EdgeInsets(top: 4 * k, leading: 20 * k, bottom: 4 * k, trailing: 20 * k))
@@ -598,14 +607,14 @@ struct SavedTVsSheet: View {
                 .frame(width: 44 * k, height: 44 * k)
                 .background(Color.ink, in: .rect(cornerRadius: 14 * k))
             VStack(alignment: .leading, spacing: 0) {
-                Text(saved.name).font(.system(size: 15 * k, weight: .semibold)).lineLimit(1)
+                Text(saved.name).scaledFont(15, .semibold).lineLimit(1)
                 Text(saved.ip == current ? "\(saved.ip) · Conectada" : "\(saved.ip)")
-                    .font(.system(size: 13 * k)).foregroundStyle(Color.muted)
+                    .scaledFont(13).foregroundStyle(Color.muted)
             }
             Spacer()
             Icon("derecha")
         }
-        .padding(.horizontal, 12 * k)
+        .padding(EdgeInsets(top: 8 * k, leading: 12 * k, bottom: 8 * k, trailing: 12 * k))
     }
 }
 
@@ -661,18 +670,18 @@ struct PinView: View {
                 .accessibilityLabel("Volver")
 
             VStack(alignment: .leading, spacing: 8 * k) {
-                Text("Introduce el PIN").font(.display(32 * k))
+                Text("Introduce el PIN").scaledFont(32, .heavy).accessibilityAddTraits(.isHeader)
                 Text("Mira la pantalla de **\(name)**: te mostrará un código de 4 dígitos.")
-                    .font(.system(size: 17 * k))
+                    .scaledFont(17)
                     .foregroundStyle(Color.muted)
             }
 
             HStack(spacing: 12 * k) {
                 ForEach(0..<4) { i in
                     Text(i < pin.count ? String(Array(pin)[i]) : "")
-                        .font(.display(32 * k))
+                        .scaledFont(32, .heavy)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 72 * k)
+                        .frame(minHeight: 72 * k)
                         .brandGlass(radius: 16, outline: boxColor(i))
                 }
             }
@@ -680,7 +689,7 @@ struct PinView: View {
             .accessibilityLabel("PIN: \(pin.count) de 4 dígitos")
 
             Text(checking ? "Conectando…" : error ?? "Escríbelo tal y como aparece.")
-                .font(.system(size: 15 * k))
+                .scaledFont(15)
                 .foregroundStyle(error == nil ? Color.muted : .rojo)
                 .accessibilityAddTraits(.updatesFrequently)
 
@@ -692,11 +701,12 @@ struct PinView: View {
                 pad("0")
                 Button { pin = String(pin.dropLast()); error = nil } label: { Icon("borrar") }
                     .buttonStyle(KeyStyle())
-                    .frame(height: 60 * k)
+                    .minHeight(60)
                     .accessibilityLabel("Borrar")
             }
             .disabled(checking)
         }
+        .scrollIfNeeded()
         .padding(EdgeInsets(top: 20 * k, leading: 20 * k, bottom: 24 * k, trailing: 20 * k))
     }
 
@@ -718,10 +728,10 @@ struct PinView: View {
                 if error != nil { pin = "" }
             }
         } label: {
-            Text(d).font(.display(28 * k, .bold))
+            Text(d).scaledFont(28, .bold)
         }
         .buttonStyle(KeyStyle())
-        .frame(height: 60 * k)
+        .minHeight(60)
         .accessibilityLabel("Tecla \(d)")
     }
 }

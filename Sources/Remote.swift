@@ -7,6 +7,8 @@ struct RemoteView: View {
     var onDevices: () -> Void
     @Environment(\.k) private var k
     @Environment(\.wide) private var wide
+    @Environment(\.dynamicTypeSize) private var type
+    @ScaledMetric private var ts: CGFloat = 1
     @AppStorage("fab") private var fab = true
     @State private var page = UserDefaults.standard.integer(forKey: "page")
     @State private var status = String(localized: "Lista para enviar órdenes")
@@ -75,18 +77,21 @@ struct RemoteView: View {
                       onSettings: { showApps = false; showSettings = true },
                       onClose: { showApps = false })
                 .environment(\.k, k)
+                .capTypeSize()
                 .presentationDetents([.medium, .large])
                 .glassSheet()
         }
         .sheet(isPresented: $showKeyboard) {
             KeyboardSheet(send: { try await tv.setText($0) }, enter: { try await tv.press(["Confirm"]) }, onClose: { showKeyboard = false })
                 .environment(\.k, k)
-                .presentationDetents([.height(230 * k)])
+                .capTypeSize()
+                .presentationDetents([.height(230 * k * max(1, ts)), .large])
                 .glassSheet()
         }
         .fullScreenCover(isPresented: $showSettings) {
             SettingsView(tv: tv) { showSettings = false }
                 .environment(\.k, k)
+                .capTypeSize()
         }
     }
 
@@ -106,12 +111,12 @@ struct RemoteView: View {
                 .frame(width: 44 * k, height: 44 * k)
                 .accessibilityLabel("Elegir dispositivo")
             VStack(alignment: .leading, spacing: 0) {
-                Text(tv.model).font(.display(20 * k)).lineLimit(1)
+                Text(tv.model).scaledFont(20, .heavy).lineLimit(2).minimumScaleFactor(0.7).accessibilityAddTraits(.isHeader)
                 HStack(spacing: 8 * k) {
-                    Circle().fill(tv.isOn ? Color.verde : .muted).frame(width: 8 * k, height: 8 * k)
-                    Text(tv.isOn ? "\(name) · Conectada" : "\(name) · En espera").lineLimit(1)
+                    Circle().fill(tv.isOn ? Color.verde : .muted).frame(width: 8 * k, height: 8 * k).accessibilityHidden(true)
+                    Text(tv.isOn ? "\(name) · Conectada" : "\(name) · En espera").lineLimit(2)
                 }
-                .font(.system(size: 13 * k))
+                .scaledFont(13)
                 .foregroundStyle(Color.muted)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -129,7 +134,7 @@ struct RemoteView: View {
             ForEach(shown, id: \.self) { n in
                 Button { withAnimation { page = n } } label: { Text(pages[n]) }
                     .buttonStyle(KeyStyle(kind: page == n ? .lens : .tab, radius: 22))
-                    .frame(height: 44 * k)
+                    .minHeight(44)
                     .accessibilityAddTraits(page == n ? .isSelected : [])
             }
         }
@@ -139,21 +144,26 @@ struct RemoteView: View {
 
     private var statusRow: some View {
         HStack(spacing: 12 * k) {
-            Text(status).lineLimit(1).foregroundStyle(Color.muted)
+            Text(status).lineLimit(2).foregroundStyle(Color.muted)
             Spacer(minLength: 0)
             if let volume {
-                Text(volume.muted ? "Silencio" : "Vol \(volume.level)")
-                Capsule().fill(Color.line)
-                    .frame(width: 56 * k, height: 4 * k)
-                    .overlay(alignment: .leading) {
-                        Capsule().fill(Color.verde)
-                            .frame(width: 56 * k * (volume.muted ? 0 : CGFloat(volume.level) / CGFloat(max(volume.max, 1))))
-                    }
+                HStack(spacing: 12 * k) {
+                    Text(volume.muted ? "Silencio" : "Vol \(volume.level)")
+                    Capsule().fill(Color.line)
+                        .frame(width: 56 * k, height: 4 * k)
+                        .overlay(alignment: .leading) {
+                            Capsule().fill(Color.verde)
+                                .frame(width: 56 * k * (volume.muted ? 0 : CGFloat(volume.level) / CGFloat(max(volume.max, 1))))
+                        }
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Volumen")
+                .accessibilityValue(volume.muted ? Text("Silencio") : Text("\(volume.level) de \(volume.max)"))
             }
         }
-        .font(.system(size: 13 * k))
+        .scaledFont(13)
         .foregroundStyle(Color.muted)
-        .frame(height: 20 * k)
+        .frame(minHeight: 20 * k)
     }
 
     private func dots(_ shown: Range<Int>) -> some View {
@@ -169,6 +179,7 @@ struct RemoteView: View {
             }
         }
         .frame(height: 24 * k)
+        .accessibilityHidden(true) // las pestañas ya hacen de selector de página
     }
 
     // MARK: - Mando
@@ -176,14 +187,16 @@ struct RemoteView: View {
     private var mando: some View {
         VStack(spacing: 16 * k) {
             HStack(spacing: 12 * k) {
-                rocker("VOL", up: ("Subir volumen", "VolumeUp"), down: ("Bajar volumen", "VolumeDown"))
+                rocker("VOL", name: "Volumen", up: ("Subir volumen", "VolumeUp"), down: ("Bajar volumen", "VolumeDown"))
                 VStack(spacing: 10 * k) {
                     key("Silencio", ["Mute"], icon: "silenciar", text: false, height: nil, outline: volume?.muted == true ? .rojo : nil)
                     Button { withAnimation { page = 2 } } label: { Label { Text("Entradas") } icon: { Icon("entradas", size: 20) } }
+                        .labelStyle(AdaptiveLabel())
+                        .accessibilityLabel("Entradas")
                         .buttonStyle(KeyStyle())
                     key("Guía", ["Guide", "EPG"], icon: "apps", height: nil)
                 }
-                rocker("CAN", up: ("Canal siguiente", "ChannelUp"), down: ("Canal anterior", "ChannelDown"))
+                rocker("CAN", name: "Canal", up: ("Canal siguiente", "ChannelUp"), down: ("Canal anterior", "ChannelDown"))
             }
             .frame(height: 176 * k)
 
@@ -209,12 +222,22 @@ struct RemoteView: View {
             }
             Spacer(minLength: 0)
         }
+        .scrollIfNeeded()
     }
 
-    private func rocker(_ label: LocalizedStringResource, up: (LocalizedStringResource, String), down: (LocalizedStringResource, String)) -> some View {
+    /// `name` es lo que lee VoiceOver en la etiqueta VOL/CAN, que además es ajustable (deslizar arriba/abajo = subir/bajar).
+    private func rocker(_ label: LocalizedStringResource, name: LocalizedStringResource, up: (LocalizedStringResource, String), down: (LocalizedStringResource, String)) -> some View {
         VStack(spacing: 0) {
             key(up.0, [up.1], icon: "mas", text: false, height: nil, kind: .ghost, radius: 0, repeats: true)
-            Text(label).font(.system(size: 13 * k, weight: .semibold)).tracking(1).foregroundStyle(Color.muted)
+            Text(label).scaledFont(13, .semibold, cap: 1.3).tracking(1).foregroundStyle(Color.muted)
+                .accessibilityLabel(Text(name))
+                .accessibilityAdjustableAction { direction in
+                    switch direction {
+                    case .increment: send(up.0, [up.1], coalescing: true)
+                    case .decrement: send(down.0, [down.1], coalescing: true)
+                    @unknown default: break
+                    }
+                }
             key(down.0, [down.1], icon: "menos", text: false, height: nil, kind: .ghost, radius: 0, repeats: true)
         }
         .frame(width: 84 * k)
@@ -232,7 +255,7 @@ struct RemoteView: View {
             GridRow { Color.clear.frame(width: cell, height: cell); arrow("Arriba", "Up", "arriba"); Color.clear.frame(width: cell, height: cell) }
             GridRow {
                 arrow("Izquierda", "Left", "izquierda")
-                Button { send("OK", ["Confirm"]) } label: { Text("OK").font(.display(20 * k)) }
+                Button { send("OK", ["Confirm"]) } label: { Text("OK").scaledFont(20, .heavy, cap: 1.5) }
                     .buttonStyle(KeyStyle(kind: .primary, radius: 40))
                     .frame(width: cell, height: cell)
                     .accessibilityLabel("Aceptar")
@@ -268,7 +291,7 @@ struct RemoteView: View {
                         Capsule().fill(color).frame(width: 36 * k, height: 6 * k)
                     }
                     .buttonStyle(KeyStyle())
-                    .frame(height: 44 * k)
+                    .minHeight(44)
                     .disabled(!tv.has([name]))
                     .accessibilityLabel(Text(label))
                 }
@@ -281,16 +304,16 @@ struct RemoteView: View {
         Button {
             send("Tecla \(n)", ["Num\(n)"])
         } label: {
-            Text("\(n)").font(.display(28 * k, .bold))
+            Text("\(n)").scaledFont(28, .bold)
         }
         .buttonStyle(KeyStyle())
-        .frame(height: 72 * k)
+        .minHeight(72)
         .disabled(!tv.has(["Num\(n)"]))
         .accessibilityLabel("Tecla \(n)")
     }
 
-    private func grid(spacing: CGFloat = 12, @ViewBuilder _ content: () -> some View) -> some View {
-        LazyVGrid(columns: Array(repeating: GridItem(spacing: spacing * k), count: 3), spacing: spacing * k, content: content)
+    private func grid(spacing: CGFloat = 12, columns: Int = 3, @ViewBuilder _ content: () -> some View) -> some View {
+        LazyVGrid(columns: Array(repeating: GridItem(spacing: spacing * k), count: columns), spacing: spacing * k, content: content)
     }
 
     // MARK: - Atajos
@@ -298,7 +321,7 @@ struct RemoteView: View {
     private var atajos: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14 * k) {
-                grid {
+                grid(columns: type.isAccessibilitySize ? 2 : 3) {
                     tile("Opciones", "opciones") { send("Opciones", ["Options"]) }.disabled(!tv.has(["Options"]))
                     tile("Descubrir", "descubrir") { send("Descubrir", ["Discover"]) }.disabled(!tv.has(["Discover"]))
                     tile("Teclado", "teclado") { showKeyboard = true }
@@ -306,7 +329,7 @@ struct RemoteView: View {
                     tile("Ajustes", "ajustes") { showSettings = true }
                     tile("Ayuda", "ayuda") { send("Ayuda", ["Help"]) }.disabled(!tv.has(["Help"]))
                 }
-                Text("Entradas").font(.display(24 * k, .bold)).padding(.top, 6 * k)
+                Text("Entradas").scaledFont(24, .bold).padding(.top, 6 * k).accessibilityAddTraits(.isHeader)
                 VStack(spacing: 8 * k) {
                     ForEach([("HDMI 1", "Hdmi1"), ("HDMI 2", "Hdmi2"), ("HDMI 3", "Hdmi3"), ("HDMI 4", "Hdmi4"), ("TV digital", "Tv")] as [(LocalizedStringResource, String)], id: \.1) { label, name in
                         inputRow(label, name)
@@ -329,7 +352,7 @@ struct RemoteView: View {
             .padding(14 * k)
         }
         .buttonStyle(KeyStyle())
-        .frame(height: 88 * k)
+        .minHeight(88)
     }
 
     private func inputRow(_ label: LocalizedStringResource, _ name: String) -> some View {
@@ -350,15 +373,17 @@ struct RemoteView: View {
                     }
                 }
                 .frame(width: 18 * k, height: 18 * k) // mismo ancho para que los textos queden alineados
+                .accessibilityHidden(true)
                 Text(label)
                 Spacer()
-                if selected { Text("Activa").font(.system(size: 13 * k, weight: .semibold)).foregroundStyle(Color.verde) }
+                if selected { Text("Activa").scaledFont(13, .semibold).foregroundStyle(Color.ink).accessibilityHidden(true) }
             }
             .padding(.horizontal, 16 * k)
         }
         .buttonStyle(KeyStyle(radius: 26, outline: selected ? .verde : nil))
-        .frame(height: 52 * k)
+        .minHeight(52)
         .disabled(!tv.has([name]))
+        .accessibilityValue(selected ? Text("Activa") : Text(""))
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
@@ -372,16 +397,18 @@ struct RemoteView: View {
             after()
         } label: {
             switch (icon, text) {
-            case (let icon?, true): Label { Text(label) } icon: { Icon(icon, size: 20) }
+            case (let icon?, true): Label { Text(label) } icon: { Icon(icon, size: 20) }.labelStyle(AdaptiveLabel())
             case (let icon?, false): Icon(icon, size: 24)
             default: Text(label)
             }
         }
         .buttonStyle(KeyStyle(kind: kind, radius: radius, outline: outline))
         .buttonRepeatBehavior(repeats ? .enabled : .disabled) // mantener pulsado repite (volumen, canal y cruceta)
-        .frame(height: height.map { $0 * k })
+        .frame(minHeight: height.map { $0 * k })
+        .fixedSize(horizontal: false, vertical: height != nil)
         .disabled(!tv.has(names))
         .accessibilityLabel(Text(label))
+        .accessibilityHint(repeats ? Text("Mantén pulsado para repetir") : Text(""))
     }
 
     private func send(_ label: LocalizedStringResource, _ names: [String], coalescing: Bool = false) {
@@ -461,14 +488,14 @@ struct KeyboardSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16 * k) {
             HStack(spacing: 4 * k) {
-                Text("Teclado").font(.display(24 * k, .bold)).frame(maxWidth: .infinity, alignment: .leading)
+                Text("Teclado").scaledFont(24, .bold).frame(maxWidth: .infinity, alignment: .leading).accessibilityAddTraits(.isHeader)
                 Button(action: onClose) { Icon("cerrar", size: 22) }
                     .buttonStyle(KeyStyle(radius: 22))
                     .frame(width: 44 * k, height: 44 * k)
                     .accessibilityLabel("Cerrar")
             }
             TextField("Escribe para la tele", text: $text)
-                .font(.system(size: 17 * k))
+                .scaledFont(17)
                 .focused($focused)
                 .submitLabel(.go)
                 .padding(14 * k)
@@ -484,7 +511,7 @@ struct KeyboardSheet: View {
                     }
                 }
             Text(error ?? String(localized: "Se envía mientras escribes y sustituye el texto del campo abierto en la tele."))
-                .font(.system(size: 13 * k))
+                .scaledFont(13)
                 .foregroundStyle(error == nil ? Color.muted : .rojo)
             Spacer(minLength: 0)
         }
@@ -554,13 +581,14 @@ struct Monogram: View {
                 Image(uiImage: image).resizable().scaledToFill().frame(width: size * k, height: size * k).clipShape(.rect(cornerRadius: radius * k))
             } else {
                 Text(name.prefix(1))
-                    .font(.display(size * 0.36 * k))
+                    .scaledFont(size * 0.36, .heavy, cap: 1)
                     .foregroundStyle(tint == .rojo ? Color.onRojo : tint == .verde ? .onVerde : .ink)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .brandGlass(radius: radius, tint: tint)
+                    .brandGlass(radius: radius, tint: tint, outline: tint == .normal ? .glassEdge : nil) // en oscuro el cristal normal se pierde sobre la hoja
             }
         }
         .frame(width: size * k, height: size * k)
+        .accessibilityHidden(true) // decorativo: el nombre de la app ya lo lee el botón o la fila
         .task(id: icon) { image = await Self.load(icon) }
     }
 
@@ -597,13 +625,14 @@ struct AppsSheet: View {
     var onSettings: () -> Void
     var onClose: () -> Void
     @Environment(\.k) private var k
+    @Environment(\.dynamicTypeSize) private var type
     @AppStorage("panelApps") private var raw = PanelApp.defaults
 
     var body: some View {
         let apps = PanelApp.decode(raw).filter(\.on)
         VStack(alignment: .leading, spacing: 16 * k) {
             HStack(spacing: 4 * k) {
-                Text("Apps").font(.display(24 * k, .bold)).frame(maxWidth: .infinity, alignment: .leading)
+                Text("Apps").scaledFont(24, .bold).frame(maxWidth: .infinity, alignment: .leading).accessibilityAddTraits(.isHeader)
                 Button(action: onSettings) { Icon("ajustes", size: 22) }
                     .buttonStyle(KeyStyle(radius: 22))
                     .frame(width: 44 * k, height: 44 * k)
@@ -615,15 +644,15 @@ struct AppsSheet: View {
             }
             if apps.isEmpty {
                 Text("No hay apps en el panel. Actívalas en Configuración.")
-                    .font(.system(size: 15 * k))
+                    .scaledFont(15)
                     .foregroundStyle(Color.muted)
             }
-            LazyVGrid(columns: Array(repeating: GridItem(spacing: 8 * k), count: 4), spacing: 14 * k) {
+            LazyVGrid(columns: Array(repeating: GridItem(spacing: 8 * k), count: type.isAccessibilitySize ? 2 : 4), spacing: 14 * k) {
                 ForEach(apps, id: \.name) { app in
                     Button { onOpen(app.name) } label: {
                         VStack(spacing: 6 * k) {
                             Monogram(name: app.name, size: 56, icon: tv.icon(app.name))
-                            Text(app.name).font(.system(size: 13 * k, weight: .regular)).lineLimit(1)
+                            Text(app.name).scaledFont(13, .regular).lineLimit(type.isAccessibilitySize ? 2 : 1)
                         }
                     }
                     .buttonStyle(KeyStyle(kind: .ghost))
@@ -632,8 +661,9 @@ struct AppsSheet: View {
             Spacer(minLength: 0)
             Button(action: onTVApps) { Label { Text("Apps de la tele") } icon: { Icon("apps", size: 20) } }
                 .buttonStyle(KeyStyle(kind: .dark, radius: 26))
-                .frame(height: 52 * k)
+                .minHeight(52)
         }
+        .scrollIfNeeded()
         .padding(EdgeInsets(top: 16 * k, leading: 20 * k, bottom: 28 * k, trailing: 20 * k))
         .foregroundStyle(Color.ink)
         .task {
@@ -659,21 +689,21 @@ struct SettingsView: View {
                         .buttonStyle(KeyStyle(radius: 22))
                         .frame(width: 44 * k, height: 44 * k)
                         .accessibilityLabel("Volver")
-                    Text("Configuración").font(.display(24 * k, .bold))
+                    Text("Configuración").scaledFont(24, .bold).accessibilityAddTraits(.isHeader)
                 }
 
                 Toggle(isOn: $fab) {
                     VStack(alignment: .leading, spacing: 0) {
-                        Text("Botón flotante").font(.system(size: 15 * k, weight: .semibold))
-                        Text("Mostrar Apps sobre el mando").font(.system(size: 13 * k)).foregroundStyle(Color.muted)
+                        Text("Botón flotante").scaledFont(15, .semibold)
+                        Text("Mostrar Apps sobre el mando").scaledFont(13).foregroundStyle(Color.muted)
                     }
                 }
                 .padding(EdgeInsets(top: 12 * k, leading: 16 * k, bottom: 12 * k, trailing: 12 * k))
                 .modifier(Card())
 
                 VStack(alignment: .leading, spacing: 0) {
-                    Text("Apps del panel").font(.system(size: 17 * k, weight: .semibold))
-                    Text("Activa las que quieras y arrástralas para ordenarlas.").font(.system(size: 13 * k)).foregroundStyle(Color.muted)
+                    Text("Apps del panel").scaledFont(17, .semibold).accessibilityAddTraits(.isHeader)
+                    Text("Activa las que quieras y arrástralas para ordenarlas.").scaledFont(13).foregroundStyle(Color.muted)
                 }
                 .padding(.top, 8 * k)
             }
@@ -684,7 +714,7 @@ struct SettingsView: View {
             ForEach(apps, id: \.name) { app in
                 HStack(spacing: 12 * k) {
                     Monogram(name: app.name, size: 36, icon: tv.icon(app.name))
-                    Text(app.name).font(.system(size: 15 * k, weight: .semibold)).frame(maxWidth: .infinity, alignment: .leading)
+                    Text(app.name).scaledFont(15, .semibold).frame(maxWidth: .infinity, alignment: .leading)
                     Toggle("Mostrar \(app.name)", isOn: Binding(get: { app.on }, set: { on in
                         raw = PanelApp.encode(apps.map { $0.name == app.name ? PanelApp(name: $0.name, on: on) : $0 })
                     }))
@@ -744,9 +774,9 @@ struct CoffeeSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12 * k) {
             VStack(alignment: .leading, spacing: 0) {
-                Text("Invítame a un café").font(.system(size: 17 * k, weight: .semibold))
+                Text("Invítame a un café").scaledFont(17, .semibold).accessibilityAddTraits(.isHeader)
                 Text("Quién Manda es gratis y lo seguirá siendo. Si te ahorra levantarte del sofá, puedes invitarme a algo. No desbloquea nada.")
-                    .font(.system(size: 13 * k))
+                    .scaledFont(13)
                     .foregroundStyle(Color.muted)
             }
             ForEach(Coffee.ids, id: \.self) { id in
@@ -757,7 +787,7 @@ struct CoffeeSection: View {
             }
             if thanks {
                 Text("¡Gracias por el café!")
-                    .font(.system(size: 15 * k, weight: .semibold))
+                    .scaledFont(15, .semibold)
                     .foregroundStyle(Color.verde)
             }
         }
@@ -777,13 +807,14 @@ struct CoffeeStyle: ProductViewStyle {
         HStack(spacing: 12 * k) {
             if let product = configuration.product {
                 VStack(alignment: .leading, spacing: 0) {
-                    Text(product.displayName).font(.system(size: 15 * k, weight: .semibold))
-                    Text(product.description).font(.system(size: 13 * k)).foregroundStyle(Color.muted)
+                    Text(product.displayName).scaledFont(15, .semibold)
+                    Text(product.description).scaledFont(13).foregroundStyle(Color.muted)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 Button(product.displayPrice, action: configuration.purchase)
                     .buttonStyle(KeyStyle(kind: .primary, radius: 22))
-                    .frame(width: 88 * k, height: 44 * k)
+                    .frame(width: 88 * k)
+                    .minHeight(44)
             } else {
                 ProgressView().frame(maxWidth: .infinity, minHeight: 44 * k)
             }
