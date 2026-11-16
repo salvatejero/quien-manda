@@ -51,7 +51,7 @@ menos y nada de rastreo. La ficha de privacidad queda en "Datos no recopilados".
 
 ## 2. Decisiones técnicas (las más simples que funcionan)
 
-- **SwiftUI**, iOS 18+ y **un solo target universal**. El iPad usa la misma UI, con
+- **SwiftUI**, iOS 17+ y **un solo target universal**. El iPad usa la misma UI, con
   un factor de escala que se lee de `horizontalSizeClass` (botones y fuentes más
   grandes) y, en horizontal, una columna lateral con Shortcuts y Function Keys.
   No hay una app aparte para iPad.

@@ -6,7 +6,7 @@ opcional. El plan completo y el análisis de la app de referencia están en `PLA
 y el estado de cada funcionalidad en `README.md`.
 
 ## Reglas del proyecto
-- **SwiftUI, iOS 18+, un solo target universal.** El iPad es la misma UI escalada
+- **SwiftUI, iOS 17+, un solo target universal.** El iPad es la misma UI escalada
   (`horizontalSizeClass == .regular` → ×1,6). No se hacen vistas aparte para iPad.
 - **Sin dependencias de terceros.** Solo `URLSession`, `Network.framework` y StoreKit 2.
   Nada de SDKs de anuncios, analítica ni crash reporting.

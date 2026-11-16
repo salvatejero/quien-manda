@@ -1,6 +1,6 @@
 import Foundation
 import Network
-import Synchronization
+import os
 
 struct FoundTV: Identifiable, Hashable {
     let ip: String
@@ -77,7 +77,7 @@ final class Discovery {
         let parameters = NWParameters.tcp
         (parameters.defaultProtocolStack.internetProtocol as? NWProtocolIP.Options)?.version = .v4
         let connection = NWConnection(to: endpoint, using: parameters)
-        let done = Mutex(false)
+        let done = OSAllocatedUnfairLock(initialState: false)
         return await withCheckedContinuation { continuation in
             @Sendable func finish(_ ip: String?) {
                 guard done.withLock({ was in defer { was = true }; return !was }) else { return }

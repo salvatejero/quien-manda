@@ -13,7 +13,7 @@ Sin anuncios, sin rastreo y sin funciones de pago. Para TVs Sony BRAVIA con Andr
 [🗺️ Plan](PLAN.md) ·
 [🤝 Contribuir](CONTRIBUTING.md)
 
-![iOS 18+](https://img.shields.io/badge/iOS%20%2F%20iPadOS-18%2B-000?logo=apple)
+![iOS 17+](https://img.shields.io/badge/iOS%20%2F%20iPadOS-17%2B-000?logo=apple)
 ![Swift 6](https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white)
 ![SwiftUI](https://img.shields.io/badge/UI-SwiftUI-0A84FF)
 ![Dependencias](https://img.shields.io/badge/dependencias-0-34C759)
