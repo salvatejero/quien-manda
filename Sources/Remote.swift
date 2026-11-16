@@ -209,7 +209,7 @@ struct RemoteView: View {
                 key("TV", ["Tv"])
             }
             // Una sola barra de cristal; a su derecha, el FAB (56 + 12 de hueco = el margin-right: 68 del diseño).
-            HStack(alignment: .top, spacing: 12 * k) {
+            HStack(alignment: .center, spacing: 12 * k) {
                 HStack(spacing: 0) {
                     key("Retroceder", ["Rewind"], icon: "retroceder", text: false, height: nil, kind: .ghost, radius: 22)
                     key("Reproducir", ["Play"], icon: "reproducir", text: false, height: nil, kind: .ghost, radius: 22)
@@ -218,7 +218,7 @@ struct RemoteView: View {
                 }
                 .frame(height: 52 * k)
                 .modifier(Card(radius: 26))
-                if fab { fabButton.offset(y: 16 * k) } // el FAB queda 16 por debajo de la barra, como en el diseño
+                if fab { fabButton } // centrado con la barra
             }
             Spacer(minLength: 0)
         }
@@ -497,24 +497,23 @@ struct KeyboardSheet: View {
         VStack(alignment: .leading, spacing: 16 * k) {
             HStack(spacing: 4 * k) {
                 Text("Teclado").scaledFont(24, .bold).frame(maxWidth: .infinity, alignment: .leading).accessibilityAddTraits(.isHeader)
-                Button(action: onClose) { Icon("cerrar", size: 22) }
-                    .buttonStyle(KeyStyle(radius: 22))
-                    .frame(width: 44 * k, height: 44 * k)
+                Button(action: onClose) { Icon("cerrar", size: 28) }
+                    .buttonStyle(KeyStyle(radius: 28))
+                    .frame(width: 56 * k, height: 56 * k)
                     .accessibilityLabel("Cerrar")
             }
-            TextField("Escribe para la tele", text: $text)
-                .scaledFont(17)
+            TextField("Escribe para la tele", text: $text, axis: .vertical)
+                .scaledFont(24)
+                .lineLimit(4...8)
                 .focused($focused)
                 .submitLabel(.go)
-                .padding(14 * k)
-                .brandGlass(radius: 16)
-                .onSubmit {
-                    // Intro va después del texto pendiente (si se ha escrito algo), no antes.
-                    pending?.cancel()
-                    let current = text, typed = pending != nil
-                    Task { await perform { if typed { try await send(current) }; try await enter() } }
-                }
+                .padding(18 * k)
+                .frame(minHeight: 140 * k, alignment: .topLeading)
+                .brandGlass(radius: 24)
+                .onSubmit(submit)
                 .onChange(of: text) {
+                    // En un campo de varias líneas Intro mete un salto: se quita y cuenta como enviar.
+                    if text.contains("\n") { text = text.replacingOccurrences(of: "\n", with: ""); submit(); return }
                     pending?.cancel()
                     let current = text
                     pending = Task {
@@ -528,8 +527,15 @@ struct KeyboardSheet: View {
                 .foregroundStyle(error == nil ? Color.muted : .rojo)
             Spacer(minLength: 0)
         }
-        .padding(EdgeInsets(top: 16 * k, leading: 20 * k, bottom: 20 * k, trailing: 20 * k))
+        .padding(EdgeInsets(top: 30 * k, leading: 23 * k, bottom: 20 * k, trailing: 23 * k))
         .onAppear { focused = true }
+    }
+
+    /// Intro va después del texto pendiente (si se ha escrito algo), no antes.
+    private func submit() {
+        pending?.cancel()
+        let current = text, typed = pending != nil
+        Task { await perform { if typed { try await send(current) }; try await enter() } }
     }
 
     private func perform(_ action: () async throws -> Void) async {
@@ -650,9 +656,9 @@ struct AppsSheet: View {
                     .buttonStyle(KeyStyle(radius: 22))
                     .frame(width: 44 * k, height: 44 * k)
                     .accessibilityLabel("Configurar apps")
-                Button(action: onClose) { Icon("cerrar", size: 22) }
-                    .buttonStyle(KeyStyle(radius: 22))
-                    .frame(width: 44 * k, height: 44 * k)
+                Button(action: onClose) { Icon("cerrar", size: 28) }
+                    .buttonStyle(KeyStyle(radius: 28))
+                    .frame(width: 56 * k, height: 56 * k)
                     .accessibilityLabel("Cerrar")
             }
             if apps.isEmpty {
