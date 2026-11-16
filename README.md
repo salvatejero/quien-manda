@@ -197,6 +197,7 @@ No están incluidas las sesiones de diseño en claude.ai (el prototipo, el icono
 | Volumen ± / silencio / canal ± / entrada | ✅ MVP |
 | Encender y apagar (`setPowerStatus`) | ✅ MVP |
 | Diseño de iPad (escalado ×1,6) | ✅ MVP |
+| Tele que cambia de IP: guarda el `id` de Bonjour y, si falla la conexión, la reencuentra, migra cookie y PSK y reintenta (#31) | 🟡 lógica probada en tests; sin probar con TV real |
 | Autodetección: Bonjour `_googlecast._tcp` + barrido de la subred /24 | ✅ probada con TV real (encontró "Tele") |
 | UI del arquetipo: páginas Mando/Números/Atajos, panel de Apps, Configuración, «Busca tu tele» y PIN, colores de la marca (claro/oscuro) | ✅ probada con TV real |
 | Panel de Apps con las apps instaladas en la TV (icono de la propia TV, ordenar arrastrando) | ✅ probado con TV real |

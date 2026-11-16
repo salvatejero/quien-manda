@@ -103,6 +103,19 @@ final class TV {
         return volume
     }
 
+    /// Re-lee el encendido (la TV pudo apagarse o encenderse con su mando mientras la app estaba en segundo plano).
+    func refreshPower() async {
+        if !demo { isOn = (try? await powerIsActive()) ?? isOn }
+    }
+
+    /// Tecla de la entrada que está en pantalla ("Hdmi2", "Tv"), o "" si es una app; nil si no se pudo leer.
+    func currentInput() async -> String? {
+        if demo { return nil }
+        guard let info = try? await call("avContent", "getPlayingContentInfo"),
+              let uri = (info.first as? [String: Any])?["uri"] as? String else { return nil }
+        return Self.inputKey(from: uri)
+    }
+
     /// Abre la app cuyo título contiene `name` (la lista se pide una vez por conexión).
     func openApp(_ name: String) async throws {
         if demo { return }
@@ -175,17 +188,28 @@ final class TV {
         return request
     }
 
+    /// Un solo reintento con una sesión nueva: tras un rato en segundo plano la TV ya ha cerrado el keep-alive
+    /// (-1005) y, unos 30 s tras encender o apagar, contesta 404 a todo. URLSession no reintenta POST.
     @discardableResult
     private func send(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
-        let (data, response): (Data, URLResponse)
-        do { (data, response) = try await URLSession.shared.data(for: request, delegate: NoAuthRetry()) }
-        catch URLError.networkConnectionLost {
-            // Tras un rato en segundo plano la TV ya ha cerrado el keep-alive y la primera petición muere con -1005.
-            // URLSession no reintenta POST, así que se repite una vez por una conexión nueva.
-            log.notice("\(request.url?.path ?? "", privacy: .public) → -1005, reintento")
-            do { (data, response) = try await URLSession.shared.data(for: request, delegate: NoAuthRetry()) }
-            catch { throw Failure.http((error as? URLError)?.code == .cancelled ? 401 : 0) }
+        do { return try await attempt(request, in: .shared) }
+        catch let error where Self.shouldRetry(error) {
+            log.notice("\(request.url?.path ?? "", privacy: .public) → \(String(describing: error), privacy: .public), reintento")
+            let session = URLSession(configuration: .ephemeral)
+            defer { session.finishTasksAndInvalidate() }
+            return try await attempt(request, in: session)
         }
+    }
+
+    nonisolated static func shouldRetry(_ error: Error) -> Bool {
+        if case Failure.http(404) = error { return true }
+        return (error as? URLError)?.code == .networkConnectionLost
+    }
+
+    private func attempt(_ request: URLRequest, in session: URLSession) async throws -> (Data, HTTPURLResponse) {
+        let (data, response): (Data, URLResponse)
+        do { (data, response) = try await session.data(for: request, delegate: NoAuthRetry()) }
+        catch URLError.networkConnectionLost { throw URLError(.networkConnectionLost) }
         catch URLError.cancelled { throw Failure.http(401) }
         catch let error as URLError { // timeout, sin red, IP que no existe…
             log.error("\(request.url?.path ?? "", privacy: .public) → URLError \(error.code.rawValue)")
@@ -223,6 +247,17 @@ final class TV {
         return Volume(level: level, max: v["maxVolume"] as? Int ?? 100, muted: v["mute"] as? Bool ?? false)
     }
 
+    /// "extInput:hdmi?port=2" → 2
+    nonisolated static func hdmiPort(from uri: String) -> Int? {
+        guard uri.hasPrefix("extInput:hdmi"), let port = URLComponents(string: uri)?.queryItems?.first(where: { $0.name == "port" })?.value else { return nil }
+        return Int(port)
+    }
+
+    nonisolated static func inputKey(from uri: String) -> String {
+        if let port = hdmiPort(from: uri) { return "Hdmi\(port)" }
+        return uri.hasPrefix("tv:") ? "Tv" : ""
+    }
+
     /// result = [[{title, uri, icon}]]
     nonisolated static func app(_ result: [Any], named name: String) -> [String: Any]? {
         let list = result.first as? [[String: Any]] ?? []
@@ -255,12 +290,13 @@ private final class NoAuthRetry: NSObject, URLSessionTaskDelegate, Sendable {
 
 /// Llavero mínimo: una cadena por cuenta (la IP de la TV).
 enum Keychain {
-    private static func query(_ account: String) -> [String: Any] {
-        [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: "tv-auth", kSecAttrAccount as String: account]
+    /// "tv-auth": cookie del PIN. "tv-psk": clave PSK.
+    private static func query(_ account: String, _ service: String) -> [String: Any] {
+        [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service, kSecAttrAccount as String: account]
     }
 
-    static func load(_ account: String) -> String? {
-        var query = query(account)
+    static func load(_ account: String, service: String = "tv-auth") -> String? {
+        var query = query(account, service)
         query[kSecReturnData as String] = true
         var item: CFTypeRef?
         guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess, let data = item as? Data else { return nil }
@@ -268,10 +304,10 @@ enum Keychain {
     }
 
     /// `nil` borra.
-    static func save(_ value: String?, _ account: String) {
-        SecItemDelete(query(account) as CFDictionary)
+    static func save(_ value: String?, _ account: String, service: String = "tv-auth") {
+        SecItemDelete(query(account, service) as CFDictionary)
         guard let value else { return }
-        var item = query(account)
+        var item = query(account, service)
         item[kSecValueData as String] = Data(value.utf8)
         item[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
         SecItemAdd(item as CFDictionary, nil)

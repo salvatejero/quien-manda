@@ -16,6 +16,8 @@ struct RemoteView: View {
     @State private var showApps = UserDefaults.standard.string(forKey: "sheet") == "apps"
     @State private var showSettings = UserDefaults.standard.string(forKey: "sheet") == "settings"
     @State private var taps = 0
+    @State private var queue = CommandQueue()
+    @Environment(\.scenePhase) private var scenePhase
 
     private let pages: [LocalizedStringResource] = ["Mando", "Números", "Atajos"]
 
@@ -68,7 +70,8 @@ struct RemoteView: View {
         .padding(EdgeInsets(top: 20 * k, leading: 20 * k, bottom: 24 * k, trailing: 20 * k))
         .sensoryFeedback(.impact(weight: .light), trigger: taps)
         .toast($toast)
-        .task { volume = try? await tv.volume() }
+        .task { await refresh() }
+        .onChange(of: scenePhase) { if scenePhase == .active { Task { await refresh() } } }
         .sheet(isPresented: $showApps) {
             AppsSheet(tv: tv, onOpen: { app in run("Abrir \(app)") { try await tv.openApp(app) }; showApps = false },
                       onTVApps: { send("Apps de la tele", ["ApplicationLauncher", "Apps"]); showApps = false },
@@ -292,14 +295,14 @@ struct RemoteView: View {
                 grid {
                     tile("Opciones", "opciones") { send("Opciones", ["Options"]) }.disabled(!tv.has(["Options"]))
                     tile("Descubrir", "descubrir") { send("Descubrir", ["Discover"]) }.disabled(!tv.has(["Discover"]))
-                    tile("Teclado", "teclado") {}.disabled(true) // ponytail: llega con setTextForm en la fase 2
+                    // Tile «Teclado» oculto: vuelve con #34 (setTextForm).
                     tile("Web", "web") { send("Web", ["WebBrowser", "Internet"]) }.disabled(!tv.has(["WebBrowser", "Internet"]))
                     tile("Ajustes", "ajustes") { showSettings = true }
                     tile("Ayuda", "ayuda") { send("Ayuda", ["Help"]) }.disabled(!tv.has(["Help"]))
                 }
                 Text("Entradas").font(.display(24 * k, .bold)).padding(.top, 6 * k)
                 VStack(spacing: 8 * k) {
-                    ForEach([("HDMI 1", "Hdmi1"), ("HDMI 2", "Hdmi2"), ("HDMI 3", "Hdmi3"), ("TV digital", "Tv")] as [(LocalizedStringResource, String)], id: \.1) { label, name in
+                    ForEach([("HDMI 1", "Hdmi1"), ("HDMI 2", "Hdmi2"), ("HDMI 3", "Hdmi3"), ("HDMI 4", "Hdmi4"), ("TV digital", "Tv")] as [(LocalizedStringResource, String)], id: \.1) { label, name in
                         inputRow(label, name)
                     }
                 }
@@ -325,7 +328,10 @@ struct RemoteView: View {
     private func inputRow(_ label: LocalizedStringResource, _ name: String) -> some View {
         let selected = input == name
         return Button {
-            run("Entrada \(String(localized: label))") { try await tv.press([name]) }
+            run("Entrada \(String(localized: label))") {
+                try await tv.press([name])
+                Task { try? await Task.sleep(for: .seconds(1.5)); await refreshInput() } // la TV tarda en cambiar
+            }
             input = name
         } label: {
             HStack(spacing: 12 * k) {
@@ -373,9 +379,20 @@ struct RemoteView: View {
         }
     }
 
+    private func refreshInput() async {
+        if let current = await tv.currentInput() { input = current }
+    }
+
+    /// Al conectar y al volver a primer plano: volumen, encendido y entrada activa.
+    private func refresh() async {
+        volume = (try? await tv.volume()) ?? volume
+        await tv.refreshPower()
+        await refreshInput()
+    }
+
     private func run(_ label: LocalizedStringResource, _ action: @escaping () async throws -> Void) {
         taps += 1
-        Task {
+        queue.enqueue {
             do {
                 try await action()
                 status = String(localized: "Enviado · \(String(localized: label))")
@@ -385,6 +402,24 @@ struct RemoteView: View {
             }
         }
     }
+}
+
+// MARK: - Cola
+
+/// Ejecuta las órdenes una tras otra, en el orden en que se pulsaron («1» y «2» no pueden llegar como 21).
+@MainActor
+final class CommandQueue {
+    private let continuation: AsyncStream<@MainActor @Sendable () async -> Void>.Continuation
+
+    init() {
+        let (stream, continuation) = AsyncStream.makeStream(of: (@MainActor @Sendable () async -> Void).self)
+        self.continuation = continuation
+        Task { for await job in stream { await job() } }
+    }
+
+    deinit { continuation.finish() }
+
+    func enqueue(_ job: @escaping @MainActor @Sendable () async -> Void) { continuation.yield(job) }
 }
 
 // MARK: - Apps

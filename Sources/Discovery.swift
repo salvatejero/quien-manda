@@ -5,6 +5,8 @@ import os
 struct FoundTV: Identifiable, Hashable {
     let ip: String
     let name: String
+    /// Campo `id` del TXT de Bonjour: no cambia con la IP, sirve para reencontrar la tele.
+    var castID: String? = nil
     var id: String { ip }
 }
 
@@ -18,21 +20,22 @@ final class Discovery {
     private(set) var isScanning = false
     private var browser: NWBrowser?
 
-    func start() {
+    func start(sweep: Bool = true) {
         stop()
         let browser = NWBrowser(for: .bonjourWithTXTRecord(type: "_googlecast._tcp", domain: nil), using: .tcp)
         browser.browseResultsChangedHandler = { [weak self] results, _ in
             for result in results {
                 let name: String? = if case .bonjour(let txt) = result.metadata { txt["fn"] } else { nil }
+                let castID: String? = if case .bonjour(let txt) = result.metadata { txt["id"] } else { nil }
                 Task { @MainActor in
                     guard let ip = await Self.resolve(result.endpoint) else { return }
-                    await self?.add(ip: ip, name: name)
+                    await self?.add(ip: ip, name: name, castID: castID)
                 }
             }
         }
         browser.start(queue: .main)
         self.browser = browser
-        Task { await scanSubnet() }
+        if sweep { Task { await scanSubnet() } }
     }
 
     func stop() {
@@ -46,17 +49,18 @@ final class Discovery {
         defer { isScanning = false }
         await withTaskGroup(of: Void.self) { group in
             for host in Self.hosts(ip: ip, mask: mask) {
-                group.addTask { await self.add(ip: Self.format(host), name: nil) }
+                group.addTask { await self.add(ip: Self.format(host), name: nil, castID: nil) }
             }
         }
     }
 
     /// Si llega por Bonjour, su nombre ("fn", el que el usuario puso a la TV) gana al modelo.
-    private func add(ip: String, name: String?) async {
+    private func add(ip: String, name: String?, castID: String?) async {
         guard let model = await Self.probe(ip) else { return }
-        let tv = FoundTV(ip: ip, name: name ?? model)
+        var tv = FoundTV(ip: ip, name: name ?? model, castID: castID)
         if let i = tvs.firstIndex(where: { $0.ip == ip }) {
-            if name != nil { tvs[i] = tv }
+            tv.castID = castID ?? tvs[i].castID
+            tvs[i] = FoundTV(ip: ip, name: name != nil ? tv.name : tvs[i].name, castID: tv.castID)
         } else {
             tvs.append(tv)
         }
