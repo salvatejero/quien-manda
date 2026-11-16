@@ -33,17 +33,15 @@ struct RemoteView: View {
                         mando
                     }
                     .frame(width: 350 * k)
-                    .overlay(alignment: .topTrailing) {
-                        if fab { fabButton.padding(.top, 480 * k).offset(x: 16 * k) }
-                    }
                     .frame(maxWidth: .infinity)
                     VStack(spacing: 16 * k) {
                         tabs(1..<3)
                         TabView(selection: $page) {
-                            numeros.tag(1)
-                            atajos.tag(2)
+                            numeros.padding(24 * k).tag(1)
+                            atajos.padding(24 * k).tag(2)
                         }
                         .tabViewStyle(.page(indexDisplayMode: .never))
+                        .padding(-24 * k) // las sombras de las teclas no se recortan contra el TabView
                         dots(1..<3)
                     }
                     .frame(width: 350 * k)
@@ -56,15 +54,13 @@ struct RemoteView: View {
                     tabs(0..<3)
                     statusRow
                     TabView(selection: $page) {
-                        mando.tag(0)
-                        numeros.tag(1)
-                        atajos.tag(2)
+                        mando.padding(24 * k).tag(0)
+                        numeros.padding(24 * k).tag(1)
+                        atajos.padding(24 * k).tag(2)
                     }
                     .tabViewStyle(.page(indexDisplayMode: .never))
+                    .padding(-24 * k) // margen interior y padding negativo: las sombras no se recortan
                     dots(0..<3)
-                }
-                .overlay(alignment: .topTrailing) {
-                    if fab && page == 0 { fabButton.padding(.top, 536 * k).offset(x: 8 * k) }
                 }
             }
         }
@@ -80,13 +76,13 @@ struct RemoteView: View {
                       onClose: { showApps = false })
                 .environment(\.k, k)
                 .presentationDetents([.medium, .large])
-                .presentationBackground(Color.s100)
+                .glassSheet()
         }
         .sheet(isPresented: $showKeyboard) {
             KeyboardSheet(send: { try await tv.setText($0) }, enter: { try await tv.press(["Confirm"]) }, onClose: { showKeyboard = false })
                 .environment(\.k, k)
                 .presentationDetents([.height(230 * k)])
-                .presentationBackground(Color.s100)
+                .glassSheet()
         }
         .fullScreenCover(isPresented: $showSettings) {
             SettingsView(tv: tv) { showSettings = false }
@@ -98,8 +94,6 @@ struct RemoteView: View {
         Button { showApps = true } label: { Icon("apps", size: 24) }
             .buttonStyle(KeyStyle(kind: .dark, radius: 28))
             .frame(width: 56 * k, height: 56 * k)
-            .padding(4 * k)
-            .background(Color.s100, in: .circle)
             .accessibilityLabel("Apps")
     }
 
@@ -107,8 +101,8 @@ struct RemoteView: View {
 
     private var header: some View {
         HStack(spacing: 12 * k) {
-            Button(action: onDevices) { Icon("menu", size: 24) }
-                .buttonStyle(KeyStyle(kind: .ghost))
+            Button(action: onDevices) { Icon("menu", size: 22) }
+                .buttonStyle(KeyStyle(radius: 22))
                 .frame(width: 44 * k, height: 44 * k)
                 .accessibilityLabel("Elegir dispositivo")
             VStack(alignment: .leading, spacing: 0) {
@@ -134,13 +128,13 @@ struct RemoteView: View {
         HStack(spacing: 4 * k) {
             ForEach(shown, id: \.self) { n in
                 Button { withAnimation { page = n } } label: { Text(pages[n]) }
-                    .buttonStyle(KeyStyle(kind: page == n ? .primary : .tab))
+                    .buttonStyle(KeyStyle(kind: page == n ? .lens : .tab, radius: 22))
                     .frame(height: 44 * k)
                     .accessibilityAddTraits(page == n ? .isSelected : [])
             }
         }
         .padding(4 * k)
-        .modifier(Card(radius: 8))
+        .modifier(Card(radius: 26))
     }
 
     private var statusRow: some View {
@@ -180,7 +174,7 @@ struct RemoteView: View {
     // MARK: - Mando
 
     private var mando: some View {
-        VStack(spacing: 14 * k) {
+        VStack(spacing: 16 * k) {
             HStack(spacing: 12 * k) {
                 rocker("VOL", up: ("Subir volumen", "VolumeUp"), down: ("Bajar volumen", "VolumeDown"))
                 VStack(spacing: 10 * k) {
@@ -201,11 +195,17 @@ struct RemoteView: View {
                 key("Menú", ["ActionMenu", "Options"], icon: "menu")
                 key("TV", ["Tv"])
             }
-            HStack(spacing: 10 * k) {
-                key("Retroceder", ["Rewind"], icon: "retroceder", text: false)
-                key("Reproducir", ["Play"], icon: "reproducir", text: false)
-                key("Pausa", ["Pause"], icon: "pausa", text: false)
-                key("Avanzar", ["Forward"], icon: "avanzar", text: false)
+            // Una sola barra de cristal; a su derecha, el FAB (56 + 12 de hueco = el margin-right: 68 del diseño).
+            HStack(alignment: .top, spacing: 12 * k) {
+                HStack(spacing: 0) {
+                    key("Retroceder", ["Rewind"], icon: "retroceder", text: false, height: nil, kind: .ghost, radius: 22)
+                    key("Reproducir", ["Play"], icon: "reproducir", text: false, height: nil, kind: .ghost, radius: 22)
+                    key("Pausa", ["Pause"], icon: "pausa", text: false, height: nil, kind: .ghost, radius: 22)
+                    key("Avanzar", ["Forward"], icon: "avanzar", text: false, height: nil, kind: .ghost, radius: 22)
+                }
+                .frame(height: 52 * k)
+                .modifier(Card(radius: 26))
+                if fab { fabButton.offset(y: 16 * k) } // el FAB queda 16 por debajo de la barra, como en el diseño
             }
             Spacer(minLength: 0)
         }
@@ -218,12 +218,12 @@ struct RemoteView: View {
             key(down.0, [down.1], icon: "menos", text: false, height: nil, kind: .ghost, radius: 0, repeats: true)
         }
         .frame(width: 84 * k)
-        .modifier(Card())
-        .clipShape(.rect(cornerRadius: 16 * k))
+        .clipShape(.rect(cornerRadius: 42 * k)) // primero se recorta el pulsado; el cristal (con su sombra) va por fuera
+        .modifier(Card(radius: 42))
     }
 
     private var dpad: some View {
-        let cell = 77 * k
+        let cell = (247 - 14) / 3 * k
         let arrow = { (label: LocalizedStringResource, name: String, icon: String) in
             key(label, [name], icon: icon, text: false, height: nil, kind: .ghost, radius: 40, repeats: true)
                 .frame(width: cell, height: cell)
@@ -240,9 +240,8 @@ struct RemoteView: View {
             }
             GridRow { Color.clear.frame(width: cell, height: cell); arrow("Abajo", "Down", "abajo"); Color.clear.frame(width: cell, height: cell) }
         }
-        .padding(8 * k)
-        .background(Color.s200, in: .circle)
-        .overlay(Circle().strokeBorder(Color.line))
+        .padding(7 * k)
+        .brandGlass(radius: 124)
     }
 
     // MARK: - Números
@@ -316,6 +315,7 @@ struct RemoteView: View {
             }
         }
         .scrollIndicators(.hidden)
+        .scrollClipDisabled()
     }
 
     private func tile(_ label: LocalizedStringResource, _ icon: String, action: @escaping () -> Void) -> some View {
@@ -342,16 +342,21 @@ struct RemoteView: View {
             input = name
         } label: {
             HStack(spacing: 12 * k) {
-                Circle().strokeBorder(selected ? Color.verde : .muted, lineWidth: 2)
-                    .background(selected ? Color.verde : .clear, in: .circle)
-                    .frame(width: 18 * k, height: 18 * k)
+                Group {
+                    if selected {
+                        Circle().fill(Color.verde).frame(width: 18 * k, height: 18 * k)
+                    } else {
+                        Circle().strokeBorder(Color.muted, lineWidth: 2).frame(width: 14 * k, height: 14 * k)
+                    }
+                }
+                .frame(width: 18 * k, height: 18 * k) // mismo ancho para que los textos queden alineados
                 Text(label)
                 Spacer()
                 if selected { Text("Activa").font(.system(size: 13 * k, weight: .semibold)).foregroundStyle(Color.verde) }
             }
             .padding(.horizontal, 16 * k)
         }
-        .buttonStyle(KeyStyle(outline: selected ? .verde : nil))
+        .buttonStyle(KeyStyle(radius: 26, outline: selected ? .verde : nil))
         .frame(height: 52 * k)
         .disabled(!tv.has([name]))
         .accessibilityAddTraits(selected ? .isSelected : [])
@@ -361,7 +366,7 @@ struct RemoteView: View {
 
     /// Tecla IRCC: la primera de `names` que tenga la TV; si no tiene ninguna, sale deshabilitada.
     private func key(_ label: LocalizedStringResource, _ names: [String], icon: String? = nil, text: Bool = true, height: CGFloat? = 52,
-                     kind: KeyStyle.Kind = .normal, radius: CGFloat = 8, outline: Color? = nil, repeats: Bool = false, after: @escaping () -> Void = {}) -> some View {
+                     kind: KeyStyle.Kind = .normal, radius: CGFloat = 16, outline: Color? = nil, repeats: Bool = false, after: @escaping () -> Void = {}) -> some View {
         Button {
             send(label, names, coalescing: repeats)
             after()
@@ -457,8 +462,8 @@ struct KeyboardSheet: View {
         VStack(alignment: .leading, spacing: 16 * k) {
             HStack(spacing: 4 * k) {
                 Text("Teclado").font(.display(24 * k, .bold)).frame(maxWidth: .infinity, alignment: .leading)
-                Button(action: onClose) { Icon("cerrar") }
-                    .buttonStyle(KeyStyle(kind: .ghost))
+                Button(action: onClose) { Icon("cerrar", size: 22) }
+                    .buttonStyle(KeyStyle(radius: 22))
                     .frame(width: 44 * k, height: 44 * k)
                     .accessibilityLabel("Cerrar")
             }
@@ -467,8 +472,7 @@ struct KeyboardSheet: View {
                 .focused($focused)
                 .submitLabel(.go)
                 .padding(14 * k)
-                .background(Color.s200, in: .rect(cornerRadius: 12 * k))
-                .overlay(RoundedRectangle(cornerRadius: 12 * k).strokeBorder(Color.line))
+                .brandGlass(radius: 16)
                 .onSubmit { Task { await perform(enter) } }
                 .onChange(of: text) {
                     pending?.cancel()
@@ -537,20 +541,26 @@ struct Monogram: View {
     @Environment(\.k) private var k
     @State private var image: UIImage?
 
+    private var radius: CGFloat { size * 0.32 } // 18 para 56
+    /// Netflix en rojo y Spotify en verde, como en el diseño; el resto, cristal normal.
+    private var tint: BrandGlass.Tint {
+        let n = name.lowercased()
+        return n.contains("netflix") ? .rojo : n.contains("spotify") ? .verde : .normal
+    }
+
     var body: some View {
         Group {
             if let image {
-                Image(uiImage: image).resizable().scaledToFill()
+                Image(uiImage: image).resizable().scaledToFill().frame(width: size * k, height: size * k).clipShape(.rect(cornerRadius: radius * k))
             } else {
                 Text(name.prefix(1))
-                    .font(.display(size * 0.45 * k))
-                    .foregroundStyle(Color.s100)
+                    .font(.display(size * 0.36 * k))
+                    .foregroundStyle(tint == .rojo ? Color.onRojo : tint == .verde ? .onVerde : .ink)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color.ink)
+                    .brandGlass(radius: radius, tint: tint)
             }
         }
         .frame(width: size * k, height: size * k)
-        .clipShape(.rect(cornerRadius: 8 * k))
         .task(id: icon) { image = await Self.load(icon) }
     }
 
@@ -594,12 +604,12 @@ struct AppsSheet: View {
         VStack(alignment: .leading, spacing: 16 * k) {
             HStack(spacing: 4 * k) {
                 Text("Apps").font(.display(24 * k, .bold)).frame(maxWidth: .infinity, alignment: .leading)
-                Button(action: onSettings) { Icon("ajustes") }
-                    .buttonStyle(KeyStyle(kind: .ghost))
+                Button(action: onSettings) { Icon("ajustes", size: 22) }
+                    .buttonStyle(KeyStyle(radius: 22))
                     .frame(width: 44 * k, height: 44 * k)
                     .accessibilityLabel("Configurar apps")
-                Button(action: onClose) { Icon("cerrar") }
-                    .buttonStyle(KeyStyle(kind: .ghost))
+                Button(action: onClose) { Icon("cerrar", size: 22) }
+                    .buttonStyle(KeyStyle(radius: 22))
                     .frame(width: 44 * k, height: 44 * k)
                     .accessibilityLabel("Cerrar")
             }
@@ -608,21 +618,20 @@ struct AppsSheet: View {
                     .font(.system(size: 15 * k))
                     .foregroundStyle(Color.muted)
             }
-            LazyVGrid(columns: Array(repeating: GridItem(spacing: 12 * k), count: 3), spacing: 12 * k) {
+            LazyVGrid(columns: Array(repeating: GridItem(spacing: 8 * k), count: 4), spacing: 14 * k) {
                 ForEach(apps, id: \.name) { app in
                     Button { onOpen(app.name) } label: {
-                        VStack(spacing: 8 * k) {
-                            Monogram(name: app.name, size: 44, icon: tv.icon(app.name))
-                            Text(app.name).font(.system(size: 13 * k)).lineLimit(1)
+                        VStack(spacing: 6 * k) {
+                            Monogram(name: app.name, size: 56, icon: tv.icon(app.name))
+                            Text(app.name).font(.system(size: 13 * k, weight: .regular)).lineLimit(1)
                         }
                     }
-                    .buttonStyle(KeyStyle())
-                    .frame(height: 96 * k)
+                    .buttonStyle(KeyStyle(kind: .ghost))
                 }
             }
             Spacer(minLength: 0)
             Button(action: onTVApps) { Label { Text("Apps de la tele") } icon: { Icon("apps", size: 20) } }
-                .buttonStyle(KeyStyle(kind: .primary))
+                .buttonStyle(KeyStyle(kind: .dark, radius: 26))
                 .frame(height: 52 * k)
         }
         .padding(EdgeInsets(top: 16 * k, leading: 20 * k, bottom: 28 * k, trailing: 20 * k))
@@ -646,8 +655,8 @@ struct SettingsView: View {
         List {
             Group {
                 HStack(spacing: 8 * k) {
-                    Button(action: onBack) { Icon("izquierda") }
-                        .buttonStyle(KeyStyle(kind: .ghost))
+                    Button(action: onBack) { Icon("izquierda", size: 22) }
+                        .buttonStyle(KeyStyle(radius: 22))
                         .frame(width: 44 * k, height: 44 * k)
                         .accessibilityLabel("Volver")
                     Text("Configuración").font(.display(24 * k, .bold))
@@ -685,8 +694,7 @@ struct SettingsView: View {
                 .listRowInsets(EdgeInsets(top: 4 * k, leading: 32 * k, bottom: 4 * k, trailing: 20 * k))
                 .listRowSeparator(.hidden)
                 .listRowBackground(
-                    RoundedRectangle(cornerRadius: 8 * k).fill(Color.s200)
-                        .overlay(RoundedRectangle(cornerRadius: 8 * k).strokeBorder(Color.line))
+                    Color.clear.brandGlass(radius: 16)
                         .padding(EdgeInsets(top: 4 * k, leading: 20 * k, bottom: 4 * k, trailing: 20 * k))
                 )
             }
@@ -707,7 +715,7 @@ struct SettingsView: View {
         .environment(\.editMode, .constant(.active)) // asas de arrastre siempre visibles
         .tint(Color.verde)
         .foregroundStyle(Color.ink)
-        .background(Color.s100)
+        .background { GlassBackground() }
         .task {
             try? await tv.loadApps()
             raw = PanelApp.encode(PanelApp.merge(PanelApp.decode(raw), titles: tv.appTitles))
@@ -745,7 +753,7 @@ struct CoffeeSection: View {
                 ProductView(id: id)
                     .productViewStyle(CoffeeStyle(k: k))
                     .padding(EdgeInsets(top: 10 * k, leading: 16 * k, bottom: 10 * k, trailing: 12 * k))
-                    .modifier(Card(radius: 8))
+                    .modifier(Card())
             }
             if thanks {
                 Text("¡Gracias por el café!")

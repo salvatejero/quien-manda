@@ -82,6 +82,25 @@ extension View {
     }
 }
 
+/// Hoja con el cristal de marca. iOS 26: la pinta el sistema. iOS 17-18: material + tinte de hoja y esquinas de 36.
+struct GlassSheet: ViewModifier {
+    @Environment(\.k) private var k
+
+    func body(content: Content) -> some View {
+        if #available(iOS 26, *) {
+            content
+        } else {
+            content
+                .presentationBackground { Rectangle().fill(.ultraThinMaterial).overlay(Color.glassSheet) }
+                .presentationCornerRadius(36 * k)
+        }
+    }
+}
+
+extension View {
+    func glassSheet() -> some View { modifier(GlassSheet()) }
+}
+
 /// Fondo de pantalla: el color base y tres manchas difuminadas (verde, mostaza y azul) que se ven a través del cristal.
 struct GlassBackground: View {
     @Environment(\.k) private var k

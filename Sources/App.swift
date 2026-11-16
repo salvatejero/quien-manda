@@ -64,7 +64,7 @@ struct Icon: View {
 }
 
 struct KeyStyle: ButtonStyle {
-    enum Kind { case normal, ghost, tab, primary, danger, dark }
+    enum Kind { case normal, ghost, tab, lens, primary, danger, dark }
     var kind: Kind = .normal
     var radius: CGFloat = 16
     var outline: Color?
@@ -105,6 +105,7 @@ struct KeyStyle: ButtonStyle {
             case .ghost, .tab:
                 content.background(pressed ? Color.press : .clear, in: .rect(cornerRadius: radius * k))
             case .normal: content.brandGlass(radius: radius, outline: outline)
+            case .lens: content.brandGlass(radius: radius, tint: .lens, outline: outline)
             case .primary: content.brandGlass(radius: radius, tint: .verde, outline: outline)
             case .danger: content.brandGlass(radius: radius, tint: .rojo, outline: outline)
             case .dark: content.brandGlass(radius: radius, tint: .ink, outline: outline)
@@ -208,7 +209,7 @@ struct RootView: View {
                               onRename: rename, onRemove: remove, onClose: { showSaved = false })
                     .environment(\.k, k)
                     .presentationDetents([.medium, .large])
-                    .presentationBackground(Color.s100)
+                    .glassSheet()
             }
             .foregroundStyle(Color.ink)
             .environment(\.k, k)
@@ -435,15 +436,15 @@ struct DiscoverView: View {
         VStack(alignment: .leading, spacing: 16 * k) {
             HStack {
                 if let onSaved {
-                    Button(action: onSaved) { Icon("menu") }
-                        .buttonStyle(KeyStyle(kind: .ghost))
+                    Button(action: onSaved) { Icon("menu", size: 22) }
+                        .buttonStyle(KeyStyle(radius: 22))
                         .frame(width: 44 * k, height: 44 * k)
                         .accessibilityLabel("Mis teles")
                 }
                 Spacer()
                 if let onClose {
-                    Button(action: onClose) { Icon("cerrar") }
-                        .buttonStyle(KeyStyle(kind: .ghost))
+                    Button(action: onClose) { Icon("cerrar", size: 22) }
+                        .buttonStyle(KeyStyle(radius: 22))
                         .frame(width: 44 * k, height: 44 * k)
                         .accessibilityLabel("Cerrar")
                 }
@@ -485,7 +486,7 @@ struct DiscoverView: View {
                     Button("Escribir la IP") { manual = true }
                     Button("Probar sin tele", action: onDemo)
                 }
-                .buttonStyle(KeyStyle(kind: .ghost))
+                .buttonStyle(KeyStyle(radius: 22))
                 .frame(height: 44 * k)
                 Text("¿No aparece tu tele? Comprueba que está encendida y conectada a la misma red Wi-Fi.")
                     .font(.system(size: 13 * k))
@@ -528,7 +529,7 @@ struct DiscoverView: View {
             Icon("tele", size: 22)
                 .foregroundStyle(Color.s100)
                 .frame(width: 44 * k, height: 44 * k)
-                .background(Color.ink, in: .rect(cornerRadius: 8 * k))
+                .background(Color.ink, in: .rect(cornerRadius: 14 * k))
             VStack(alignment: .leading, spacing: 0) {
                 Text(found.name).font(.system(size: 15 * k, weight: .semibold))
                 Text(found.ip).font(.system(size: 13 * k)).foregroundStyle(Color.muted)
@@ -556,8 +557,8 @@ struct SavedTVsSheet: View {
         VStack(alignment: .leading, spacing: 8 * k) {
             HStack {
                 Text("Mis teles").font(.display(24 * k, .bold)).frame(maxWidth: .infinity, alignment: .leading)
-                Button(action: onClose) { Icon("cerrar") }
-                    .buttonStyle(KeyStyle(kind: .ghost))
+                Button(action: onClose) { Icon("cerrar", size: 22) }
+                    .buttonStyle(KeyStyle(radius: 22))
                     .frame(width: 44 * k, height: 44 * k)
                     .accessibilityLabel("Cerrar")
             }
@@ -595,7 +596,7 @@ struct SavedTVsSheet: View {
             Icon("tele", size: 22)
                 .foregroundStyle(Color.s100)
                 .frame(width: 44 * k, height: 44 * k)
-                .background(Color.ink, in: .rect(cornerRadius: 8 * k))
+                .background(Color.ink, in: .rect(cornerRadius: 14 * k))
             VStack(alignment: .leading, spacing: 0) {
                 Text(saved.name).font(.system(size: 15 * k, weight: .semibold)).lineLimit(1)
                 Text(saved.ip == current ? "\(saved.ip) · Conectada" : "\(saved.ip)")
@@ -654,8 +655,8 @@ struct PinView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16 * k) {
-            Button(action: onBack) { Icon("izquierda") }
-                .buttonStyle(KeyStyle(kind: .ghost))
+            Button(action: onBack) { Icon("izquierda", size: 22) }
+                .buttonStyle(KeyStyle(radius: 22))
                 .frame(width: 44 * k, height: 44 * k)
                 .accessibilityLabel("Volver")
 
@@ -672,8 +673,7 @@ struct PinView: View {
                         .font(.display(32 * k))
                         .frame(maxWidth: .infinity)
                         .frame(height: 72 * k)
-                        .background(Color.s200, in: .rect(cornerRadius: 8 * k))
-                        .overlay(RoundedRectangle(cornerRadius: 8 * k).strokeBorder(boxColor(i), lineWidth: 2))
+                        .brandGlass(radius: 16, outline: boxColor(i))
                 }
             }
             .accessibilityElement()
@@ -691,7 +691,7 @@ struct PinView: View {
                 Color.clear
                 pad("0")
                 Button { pin = String(pin.dropLast()); error = nil } label: { Icon("borrar") }
-                    .buttonStyle(KeyStyle(kind: .ghost))
+                    .buttonStyle(KeyStyle())
                     .frame(height: 60 * k)
                     .accessibilityLabel("Borrar")
             }
@@ -700,9 +700,9 @@ struct PinView: View {
         .padding(EdgeInsets(top: 20 * k, leading: 20 * k, bottom: 24 * k, trailing: 20 * k))
     }
 
-    private func boxColor(_ i: Int) -> Color {
+    private func boxColor(_ i: Int) -> Color? {
         if error != nil { return .rojo }
-        return !checking && i == pin.count ? .verde : .line
+        return !checking && i == pin.count ? .verde : nil
     }
 
     private func pad(_ d: String) -> some View {
