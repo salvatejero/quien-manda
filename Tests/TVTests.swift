@@ -54,6 +54,21 @@ final class TVTests: XCTestCase {
         XCTAssertEqual(PanelApp.merge(stored, titles: []), stored)
     }
 
+    func testSavedTVMovesToNewIPWithoutDuplicates() {
+        let list = [SavedTV(ip: "1", name: "Salón", psk: "", castID: "a"), SavedTV(ip: "9", name: "Viejo", psk: ""), SavedTV(ip: "2", name: "Cuarto", psk: "", castID: "b")]
+        let moved = SavedTV.moving(list, castID: "a", to: "9")
+        XCTAssertEqual(moved.map(\.ip), ["9", "2"])
+        XCTAssertEqual(moved[0].name, "Salón")
+        XCTAssertEqual(moved[0].castID, "a")
+    }
+
+    func testSavedTVDecodesOldJSONWithoutCastID() {
+        let tvs = SavedTV.decode(#"[{"ip":"1.2.3.4","name":"Salón"}]"#)
+        XCTAssertEqual(tvs.map(\.ip), ["1.2.3.4"])
+        XCTAssertNil(tvs[0].castID)
+        XCTAssertEqual(SavedTV.saving(SavedTV(ip: "1.2.3.4", name: "x", psk: ""), in: [SavedTV(ip: "1.2.3.4", name: "Salón", psk: "", castID: "a")])[0].castID, "a")
+    }
+
     func testSavedTVsKeepNameAndMoveFirst() {
         let list = [SavedTV(ip: "1", name: "Salón", psk: ""), SavedTV(ip: "2", name: "Cuarto", psk: "")]
         let saved = SavedTV.saving(SavedTV(ip: "2", name: "BRAVIA", psk: "0000"), in: list)

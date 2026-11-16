@@ -166,6 +166,8 @@ struct RootView: View {
     /// Con una TV guardada se arranca en el splash mientras reconecta.
     @State private var stage: Stage = UserDefaults.standard.string(forKey: "ip")?.isEmpty == false ? .splash : .discover
     @State private var busyIP: String?
+    /// castID de la tele elegida (si se conoce); `connect` lo guarda en la lista.
+    @State private var castID: String?
     @State private var message: String?
 
     var body: some View {
@@ -182,7 +184,7 @@ struct RootView: View {
                         DiscoverView(discovery: discovery, busyIP: busyIP,
                                      onClose: tv.isConnected ? { stage = .remote } : nil,
                                      onSaved: SavedTV.decode(savedRaw).isEmpty ? nil : { showSaved = true },
-                                     onPick: { pick(ip: $0.ip, name: $0.name, psk: "") },
+                                     onPick: { pick(ip: $0.ip, name: $0.name, psk: "", castID: $0.castID) },
                                      onManual: { pick(ip: $0, name: $0, psk: $1) },
                                      onDemo: { tv.demo = true; name = String(localized: "Tele"); stage = .remote })
                     case .pin:
@@ -198,7 +200,7 @@ struct RootView: View {
             .toast($message)
             .sheet(isPresented: $showSaved) {
                 SavedTVsSheet(tvs: SavedTV.decode(savedRaw), current: tv.isConnected ? ip : nil,
-                              onPick: { showSaved = false; pick(ip: $0.ip, name: $0.name, psk: $0.psk) },
+                              onPick: { showSaved = false; pick(ip: $0.ip, name: $0.name, psk: $0.psk, castID: $0.castID) },
                               onRename: rename, onRemove: remove, onClose: { showSaved = false })
                     .environment(\.k, k)
                     .presentationDetents([.medium, .large])
@@ -224,8 +226,9 @@ struct RootView: View {
         }
     }
 
-    private func pick(ip: String, name: String, psk: String) {
+    private func pick(ip: String, name: String, psk: String, castID: String? = nil) {
         tv.demo = false
+        self.castID = castID
         self.ip = ip.trimmingCharacters(in: .whitespaces)
         self.name = name.trimmingCharacters(in: .whitespaces)
         self.psk = psk
@@ -239,7 +242,7 @@ struct RootView: View {
     private func rename(_ saved: SavedTV, to newName: String) {
         let newName = newName.trimmingCharacters(in: .whitespaces)
         guard !newName.isEmpty else { return }
-        savedRaw = SavedTV.encode(SavedTV.decode(savedRaw).map { $0.ip == saved.ip ? SavedTV(ip: $0.ip, name: newName, psk: $0.psk) : $0 })
+        savedRaw = SavedTV.encode(SavedTV.decode(savedRaw).map { $0.ip == saved.ip ? SavedTV(ip: $0.ip, name: newName, psk: $0.psk, castID: $0.castID) : $0 })
         if saved.ip == ip { name = newName }
     }
 
@@ -258,23 +261,70 @@ struct RootView: View {
     }
 
     /// Devuelve el error que hay que enseñar, o nil si ya está conectada (o pide PIN).
-    private func connect(pin: String?) async -> String? {
+    /// Si la tele no responde y se conoce su castID, la busca por Bonjour por si ha cambiado de IP y reintenta una vez.
+    private func connect(pin: String?, retrying: Bool = true) async -> String? {
         tv.ip = ip
         tv.psk = psk
         do {
             try await tv.connect(pin: pin)
             Keychain.save(psk.isEmpty ? nil : psk, ip, service: "tv-psk")
-            let list = SavedTV.saving(SavedTV(ip: ip, name: name.isEmpty ? ip : name, psk: psk), in: SavedTV.decode(savedRaw))
+            let saved = SavedTV.decode(savedRaw)
+            let known = castID ?? saved.first { $0.ip == ip }?.castID
+            let list = SavedTV.saving(SavedTV(ip: ip, name: name.isEmpty ? ip : name, psk: psk, castID: known), in: saved)
             savedRaw = SavedTV.encode(list)
             name = list[0].name
             stage = .remote
+            if known == nil { learnCastID(of: ip) }
             return nil
+        } catch TV.Failure.http(0) where retrying {
+            if let id = SavedTV.decode(savedRaw).first(where: { $0.ip == ip })?.castID,
+               let newIP = await find(castID: id, notAt: ip) {
+                move(to: newIP, castID: id)
+                return await connect(pin: pin, retrying: false)
+            }
+            return TV.Failure.http(0).localizedDescription
         } catch TV.Failure.needsPin {
             stage = .pin
             return pin == nil ? nil : String(localized: "PIN incorrecto. Revisa el código de la tele.")
         } catch {
             return error.localizedDescription
         }
+    }
+
+    /// Espera hasta `seconds` a que Bonjour anuncie una tele que cumpla `match`.
+    private func browse(seconds: Int, _ match: (FoundTV) -> Bool) async -> FoundTV? {
+        discovery.start(sweep: false)
+        defer { discovery.stop() }
+        for _ in 0..<(seconds * 5) {
+            if let found = discovery.tvs.first(where: match) { return found }
+            try? await Task.sleep(for: .milliseconds(200))
+        }
+        return nil
+    }
+
+    private func find(castID: String, notAt old: String) async -> String? {
+        await browse(seconds: 5) { $0.castID == castID && $0.ip != old }?.ip
+    }
+
+    /// En segundo plano: guarda el castID de la tele conectada para poder reencontrarla si cambia de IP.
+    private func learnCastID(of ip: String) {
+        Task {
+            guard let id = await browse(seconds: 4, { $0.ip == ip && $0.castID != nil })?.castID else { return }
+            castID = id
+            savedRaw = SavedTV.encode(SavedTV.decode(savedRaw).map { var t = $0; if t.ip == ip { t.castID = id }; return t })
+        }
+    }
+
+    /// La tele sigue siendo la misma con otra IP: se lleva la cookie y la PSK del llavero y se actualiza la lista.
+    private func move(to newIP: String, castID id: String) {
+        let old = ip
+        for service in ["tv-auth", "tv-psk"] {
+            Keychain.save(Keychain.load(old, service: service), newIP, service: service)
+            Keychain.save(nil, old, service: service)
+        }
+        savedRaw = SavedTV.encode(SavedTV.moving(SavedTV.decode(savedRaw), castID: id, to: newIP))
+        ip = newIP
+        castID = id
     }
 }
 
@@ -283,18 +333,21 @@ struct SavedTV: Codable, Equatable, Identifiable {
     var ip: String
     var name: String
     var psk: String
+    /// `id` de Bonjour (`_googlecast._tcp`): estable aunque la IP cambie por DHCP.
+    var castID: String?
     var id: String { ip }
 
-    private enum CodingKeys: String, CodingKey { case ip, name }
+    private enum CodingKeys: String, CodingKey { case ip, name, castID }
 
-    init(ip: String, name: String, psk: String) {
-        self.ip = ip; self.name = name; self.psk = psk
+    init(ip: String, name: String, psk: String, castID: String? = nil) {
+        self.ip = ip; self.name = name; self.psk = psk; self.castID = castID
     }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         ip = try c.decode(String.self, forKey: .ip)
         name = try c.decode(String.self, forKey: .name)
+        castID = try c.decodeIfPresent(String.self, forKey: .castID)
         psk = Keychain.load(ip, service: "tv-psk") ?? ""
     }
 
@@ -322,8 +375,17 @@ struct SavedTV: Codable, Equatable, Identifiable {
     /// Pone `tv` la primera. Si ya estaba (misma IP), conserva el nombre que le dio el usuario.
     static func saving(_ tv: SavedTV, in list: [SavedTV]) -> [SavedTV] {
         var tv = tv
-        if let old = list.first(where: { $0.ip == tv.ip }) { tv.name = old.name }
+        if let old = list.first(where: { $0.ip == tv.ip }) { tv.name = old.name; tv.castID = tv.castID ?? old.castID }
         return [tv] + list.filter { $0.ip != tv.ip }
+    }
+
+    /// La tele con ese castID cambió de IP: reemplaza su entrada (misma posición) y quita cualquier otra con la IP nueva.
+    static func moving(_ list: [SavedTV], castID: String, to newIP: String) -> [SavedTV] {
+        var moved = false
+        return list.compactMap { tv in
+            if tv.castID == castID, !moved { moved = true; var t = tv; t.ip = newIP; return t }
+            return tv.ip == newIP || tv.castID == castID ? nil : tv
+        }
     }
 }
 
@@ -409,7 +471,7 @@ struct DiscoverView: View {
             .disabled(busyIP != nil)
 
             VStack(spacing: 12 * k) {
-                Button(action: discovery.start) {
+                Button { discovery.start() } label: {
                     Label { Text("Buscar de nuevo") } icon: { Icon("actualizar", size: 20) }
                 }
                 .buttonStyle(KeyStyle())
@@ -429,7 +491,7 @@ struct DiscoverView: View {
             }
         }
         .padding(EdgeInsets(top: 20 * k, leading: 20 * k, bottom: 24 * k, trailing: 20 * k))
-        .onAppear(perform: discovery.start)
+        .onAppear { discovery.start() }
         .onDisappear(perform: discovery.stop)
         .alert("Escribir la IP", isPresented: $manual) {
             TextField("192.0.2.20", text: $manualIP).keyboardType(.decimalPad)
