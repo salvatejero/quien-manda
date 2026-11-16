@@ -206,9 +206,9 @@ struct RemoteView: View {
 
     private func rocker(_ label: LocalizedStringResource, up: (LocalizedStringResource, String), down: (LocalizedStringResource, String)) -> some View {
         VStack(spacing: 0) {
-            key(up.0, [up.1], icon: "mas", text: false, height: nil, kind: .ghost, radius: 0)
+            key(up.0, [up.1], icon: "mas", text: false, height: nil, kind: .ghost, radius: 0, repeats: true)
             Text(label).font(.system(size: 13 * k, weight: .semibold)).tracking(1).foregroundStyle(Color.muted)
-            key(down.0, [down.1], icon: "menos", text: false, height: nil, kind: .ghost, radius: 0)
+            key(down.0, [down.1], icon: "menos", text: false, height: nil, kind: .ghost, radius: 0, repeats: true)
         }
         .frame(width: 84 * k)
         .modifier(Card())
@@ -218,7 +218,7 @@ struct RemoteView: View {
     private var dpad: some View {
         let cell = 77 * k
         let arrow = { (label: LocalizedStringResource, name: String, icon: String) in
-            key(label, [name], icon: icon, text: false, height: nil, kind: .ghost, radius: 40)
+            key(label, [name], icon: icon, text: false, height: nil, kind: .ghost, radius: 40, repeats: true)
                 .frame(width: cell, height: cell)
         }
         return Grid(horizontalSpacing: 0, verticalSpacing: 0) {
@@ -252,9 +252,9 @@ struct RemoteView: View {
                 key("Audio", ["Audio"])
                 key("Ayuda", ["Help"])
                 key("TV", ["Tv"])
-                key("Bajar volumen", ["VolumeDown"], icon: "menos", text: false)
+                key("Bajar volumen", ["VolumeDown"], icon: "menos", text: false, repeats: true)
                 key("Silencio", ["Mute"], icon: "silenciar", text: false, outline: volume?.muted == true ? .rojo : nil)
-                key("Subir volumen", ["VolumeUp"], icon: "mas", text: false)
+                key("Subir volumen", ["VolumeUp"], icon: "mas", text: false, repeats: true)
             }
             HStack(spacing: 12 * k) {
                 ForEach([("Tecla roja", "Red", Color.rojo), ("Tecla verde", "Green", .verde), ("Tecla amarilla", "Yellow", .mostaza), ("Tecla azul", "Blue", .azul)] as [(LocalizedStringResource, String, Color)], id: \.1) { label, name, color in
@@ -354,9 +354,9 @@ struct RemoteView: View {
 
     /// Tecla IRCC: la primera de `names` que tenga la TV; si no tiene ninguna, sale deshabilitada.
     private func key(_ label: LocalizedStringResource, _ names: [String], icon: String? = nil, text: Bool = true, height: CGFloat? = 52,
-                     kind: KeyStyle.Kind = .normal, radius: CGFloat = 8, outline: Color? = nil, after: @escaping () -> Void = {}) -> some View {
+                     kind: KeyStyle.Kind = .normal, radius: CGFloat = 8, outline: Color? = nil, repeats: Bool = false, after: @escaping () -> Void = {}) -> some View {
         Button {
-            send(label, names)
+            send(label, names, coalescing: repeats)
             after()
         } label: {
             switch (icon, text) {
@@ -366,14 +366,15 @@ struct RemoteView: View {
             }
         }
         .buttonStyle(KeyStyle(kind: kind, radius: radius, outline: outline))
+        .buttonRepeatBehavior(repeats ? .enabled : .disabled) // mantener pulsado repite (volumen, canal y cruceta)
         .frame(height: height.map { $0 * k })
         .disabled(!tv.has(names))
         .accessibilityLabel(Text(label))
     }
 
-    private func send(_ label: LocalizedStringResource, _ names: [String]) {
+    private func send(_ label: LocalizedStringResource, _ names: [String], coalescing: Bool = false) {
         let audio = names.contains { ["VolumeUp", "VolumeDown", "Mute"].contains($0) }
-        run(label) {
+        run(label, coalescing: coalescing) {
             try await tv.press(names)
             if audio { volume = try? await tv.volume() }
         }
@@ -390,9 +391,9 @@ struct RemoteView: View {
         await refreshInput()
     }
 
-    private func run(_ label: LocalizedStringResource, _ action: @escaping () async throws -> Void) {
+    private func run(_ label: LocalizedStringResource, coalescing: Bool = false, _ action: @escaping () async throws -> Void) {
         taps += 1
-        queue.enqueue {
+        queue.enqueue(coalescing: coalescing) {
             do {
                 try await action()
                 status = String(localized: "Enviado · \(String(localized: label))")
@@ -410,6 +411,7 @@ struct RemoteView: View {
 @MainActor
 final class CommandQueue {
     private let continuation: AsyncStream<@MainActor @Sendable () async -> Void>.Continuation
+    private var pending = 0
 
     init() {
         let (stream, continuation) = AsyncStream.makeStream(of: (@MainActor @Sendable () async -> Void).self)
@@ -419,7 +421,16 @@ final class CommandQueue {
 
     deinit { continuation.finish() }
 
-    func enqueue(_ job: @escaping @MainActor @Sendable () async -> Void) { continuation.yield(job) }
+    /// `coalescing`: la repetición al mantener pulsado no apila órdenes; si ya hay una en vuelo, se descarta.
+    /// ponytail: también descarta un toque manual muy rápido sobre estas teclas; subir el umbral si la TV tarda más de ~200 ms.
+    func enqueue(coalescing: Bool = false, _ job: @escaping @MainActor @Sendable () async -> Void) {
+        if coalescing && pending > 0 { return }
+        pending += 1
+        continuation.yield { [self] in
+            await job()
+            pending -= 1
+        }
+    }
 }
 
 // MARK: - Apps
