@@ -103,6 +103,19 @@ final class TV {
         return volume
     }
 
+    /// Re-lee el encendido (la TV pudo apagarse o encenderse con su mando mientras la app estaba en segundo plano).
+    func refreshPower() async {
+        if !demo { isOn = (try? await powerIsActive()) ?? isOn }
+    }
+
+    /// Tecla de la entrada que está en pantalla ("Hdmi2", "Tv"), o "" si es una app; nil si no se pudo leer.
+    func currentInput() async -> String? {
+        if demo { return nil }
+        guard let info = try? await call("avContent", "getPlayingContentInfo"),
+              let uri = (info.first as? [String: Any])?["uri"] as? String else { return nil }
+        return Self.inputKey(from: uri)
+    }
+
     /// Abre la app cuyo título contiene `name` (la lista se pide una vez por conexión).
     func openApp(_ name: String) async throws {
         if demo { return }
@@ -232,6 +245,17 @@ final class TV {
         guard let v = list.first(where: { $0["target"] as? String == "speaker" }) ?? list.first,
               let level = v["volume"] as? Int else { return nil }
         return Volume(level: level, max: v["maxVolume"] as? Int ?? 100, muted: v["mute"] as? Bool ?? false)
+    }
+
+    /// "extInput:hdmi?port=2" → 2
+    nonisolated static func hdmiPort(from uri: String) -> Int? {
+        guard uri.hasPrefix("extInput:hdmi"), let port = URLComponents(string: uri)?.queryItems?.first(where: { $0.name == "port" })?.value else { return nil }
+        return Int(port)
+    }
+
+    nonisolated static func inputKey(from uri: String) -> String {
+        if let port = hdmiPort(from: uri) { return "Hdmi\(port)" }
+        return uri.hasPrefix("tv:") ? "Tv" : ""
     }
 
     /// result = [[{title, uri, icon}]]

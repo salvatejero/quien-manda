@@ -1939,6 +1939,9 @@
     "HDMI 3" : {
       "shouldTranslate" : false
     },
+    "HDMI 4" : {
+      "shouldTranslate" : false
+    },
     "Hecha por" : {
       "localizations" : {
         "es" : {
