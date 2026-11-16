@@ -58,7 +58,8 @@ final class TVTests: XCTestCase {
         let list = [SavedTV(ip: "1", name: "Salón", psk: ""), SavedTV(ip: "2", name: "Cuarto", psk: "")]
         let saved = SavedTV.saving(SavedTV(ip: "2", name: "BRAVIA", psk: "0000"), in: list)
         XCTAssertEqual(saved, [SavedTV(ip: "2", name: "Cuarto", psk: "0000"), SavedTV(ip: "1", name: "Salón", psk: "")])
-        XCTAssertEqual(SavedTV.decode(SavedTV.encode(saved)), saved)
+        XCTAssertFalse(SavedTV.encode(saved).contains("0000")) // la PSK no se serializa: va al llavero
+        XCTAssertEqual(SavedTV.decode(SavedTV.encode(saved)).map(\.name), ["Cuarto", "Salón"])
         XCTAssertEqual(SavedTV.decode(""), [])
     }
 
@@ -74,6 +75,21 @@ final class TVTests: XCTestCase {
         XCTAssertEqual(Keychain.load("test-ip"), "abc")
         Keychain.save(nil, "test-ip")
         XCTAssertNil(Keychain.load("test-ip"))
+    }
+
+    func testPlainPSKMovesToKeychain() throws {
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: "test-psk"))
+        defaults.removePersistentDomain(forName: "test-psk")
+        defaults.set(#"[{"ip":"9.9.9.9","name":"Sala","psk":"secreto"}]"#, forKey: "tvs")
+        defaults.set("secreto", forKey: "psk")
+        defaults.set("9.9.9.9", forKey: "ip")
+        SavedTV.migratePlainPSK(defaults)
+        SavedTV.migratePlainPSK(defaults) // idempotente
+        XCTAssertFalse(try XCTUnwrap(defaults.string(forKey: "tvs")).contains("secreto"))
+        XCTAssertNil(defaults.string(forKey: "psk"))
+        XCTAssertEqual(SavedTV.decode(try XCTUnwrap(defaults.string(forKey: "tvs"))).first?.psk, "secreto")
+        Keychain.save(nil, "9.9.9.9", service: "tv-psk")
+        defaults.removePersistentDomain(forName: "test-psk")
     }
 
     /// Los tres cafés existen en la configuración local y se pueden comprar (y repetir: son consumibles).

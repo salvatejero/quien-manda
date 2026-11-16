@@ -290,12 +290,13 @@ private final class NoAuthRetry: NSObject, URLSessionTaskDelegate, Sendable {
 
 /// Llavero mínimo: una cadena por cuenta (la IP de la TV).
 enum Keychain {
-    private static func query(_ account: String) -> [String: Any] {
-        [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: "tv-auth", kSecAttrAccount as String: account]
+    /// "tv-auth": cookie del PIN. "tv-psk": clave PSK.
+    private static func query(_ account: String, _ service: String) -> [String: Any] {
+        [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service, kSecAttrAccount as String: account]
     }
 
-    static func load(_ account: String) -> String? {
-        var query = query(account)
+    static func load(_ account: String, service: String = "tv-auth") -> String? {
+        var query = query(account, service)
         query[kSecReturnData as String] = true
         var item: CFTypeRef?
         guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess, let data = item as? Data else { return nil }
@@ -303,10 +304,10 @@ enum Keychain {
     }
 
     /// `nil` borra.
-    static func save(_ value: String?, _ account: String) {
-        SecItemDelete(query(account) as CFDictionary)
+    static func save(_ value: String?, _ account: String, service: String = "tv-auth") {
+        SecItemDelete(query(account, service) as CFDictionary)
         guard let value else { return }
-        var item = query(account)
+        var item = query(account, service)
         item[kSecValueData as String] = Data(value.utf8)
         item[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
         SecItemAdd(item as CFDictionary, nil)

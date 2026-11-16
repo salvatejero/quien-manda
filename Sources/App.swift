@@ -2,7 +2,10 @@ import SwiftUI
 
 @main
 struct QuienMandaApp: App {
-    init() { Task { await Coffee.finishPending() } }
+    init() {
+        SavedTV.migratePlainPSK()
+        Task { await Coffee.finishPending() }
+    }
 
     var body: some Scene {
         WindowGroup { RootView() }
@@ -155,7 +158,8 @@ struct RootView: View {
     @State private var tv = TV()
     @State private var discovery = Discovery()
     @AppStorage("ip") private var ip = ""
-    @AppStorage("psk") private var psk = ""
+    /// La PSK vive en el llavero (servicio "tv-psk"), no en UserDefaults.
+    @State private var psk = Keychain.load(UserDefaults.standard.string(forKey: "ip") ?? "", service: "tv-psk") ?? ""
     @AppStorage("name") private var name = ""
     @AppStorage("tvs") private var savedRaw = ""
     @State private var showSaved = UserDefaults.standard.string(forKey: "sheet") == "tvs"
@@ -242,6 +246,7 @@ struct RootView: View {
     /// Borra la tele de la lista y su cookie del llavero. Si es la actual, se desconecta y deja de reconectar al abrir.
     private func remove(_ saved: SavedTV) {
         Keychain.save(nil, saved.ip)
+        Keychain.save(nil, saved.ip, service: "tv-psk")
         savedRaw = SavedTV.encode(SavedTV.decode(savedRaw).filter { $0.ip != saved.ip })
         if savedRaw == "[]" { showSaved = false }
         guard saved.ip == ip else { return }
@@ -258,6 +263,7 @@ struct RootView: View {
         tv.psk = psk
         do {
             try await tv.connect(pin: pin)
+            Keychain.save(psk.isEmpty ? nil : psk, ip, service: "tv-psk")
             let list = SavedTV.saving(SavedTV(ip: ip, name: name.isEmpty ? ip : name, psk: psk), in: SavedTV.decode(savedRaw))
             savedRaw = SavedTV.encode(list)
             name = list[0].name
@@ -272,12 +278,38 @@ struct RootView: View {
     }
 }
 
-/// Teles a las que se ha conectado, la última primero. Van en JSON en "tvs"; la actual sigue en "ip", "psk" y "name".
+/// Teles a las que se ha conectado, la última primero. Van en JSON en "tvs" (sin la PSK, que va al llavero).
 struct SavedTV: Codable, Equatable, Identifiable {
     var ip: String
     var name: String
     var psk: String
     var id: String { ip }
+
+    private enum CodingKeys: String, CodingKey { case ip, name }
+
+    init(ip: String, name: String, psk: String) {
+        self.ip = ip; self.name = name; self.psk = psk
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        ip = try c.decode(String.self, forKey: .ip)
+        name = try c.decode(String.self, forKey: .name)
+        psk = Keychain.load(ip, service: "tv-psk") ?? ""
+    }
+
+    /// Una vez: saca las PSK en claro de UserDefaults ("psk" y el JSON "tvs") al llavero. Idempotente.
+    static func migratePlainPSK(_ defaults: UserDefaults = .standard) {
+        struct Old: Decodable { var ip: String; var name: String; var psk: String }
+        if let raw = defaults.string(forKey: "tvs"), let old = try? JSONDecoder().decode([Old].self, from: Data(raw.utf8)) {
+            for tv in old where !tv.psk.isEmpty { Keychain.save(tv.psk, tv.ip, service: "tv-psk") }
+            defaults.set(encode(old.map { SavedTV(ip: $0.ip, name: $0.name, psk: "") }), forKey: "tvs")
+        }
+        if let psk = defaults.string(forKey: "psk") {
+            if !psk.isEmpty, let ip = defaults.string(forKey: "ip"), !ip.isEmpty { Keychain.save(psk, ip, service: "tv-psk") }
+            defaults.removeObject(forKey: "psk")
+        }
+    }
 
     static func decode(_ raw: String) -> [SavedTV] {
         (try? JSONDecoder().decode([SavedTV].self, from: Data(raw.utf8))) ?? []
