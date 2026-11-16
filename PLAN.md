@@ -117,6 +117,8 @@ que investigar el protocolo.
 
 ## 7. Hoja de ruta tras la 1.0 (publicada en noviembre de 2026)
 
+**La 2.0.0 incluye:** los arreglos 1.0.1 (puntos 1-7), 8 (mantener pulsado repite), 9 (teclado de texto), 14 (Dynamic Type y VoiceOver), 21 (Liquid Glass) y 22 (mínimo iOS 17). Pendiente de probar con una TV real: el `id` de Bonjour y la migración de IP (5), `setTextForm` 1.0 en texto plano (9) y la repetición (8).
+
 Sale de revisar `TV.swift`, `Discovery.swift`, `App.swift` y `Remote.swift` con la 1.0 ya en la App Store.
 Cada punto lleva su issue al empezarlo.
 
