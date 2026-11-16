@@ -1,0 +1,4 @@
+// Firma. El equipo va en Config/Signing.local.xcconfig (no se sube; ver .gitignore).
+// Ejemplo de ese fichero:
+//   DEVELOPMENT_TEAM = XXXXXXXXXX
+#include? "Signing.local.xcconfig"
