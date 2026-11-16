@@ -4430,6 +4430,86 @@
           }
         }
       }
+    },
+    "Escribe para la tele" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escribe para la tele"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type for the TV"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escreva para a TV"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escriu per a la tele"
+          }
+        },
+        "gl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escribe para a tele"
+          }
+        },
+        "eu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Idatzi telebistarako"
+          }
+        }
+      }
+    },
+    "Se envía mientras escribes y sustituye el texto del campo abierto en la tele." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se envía mientras escribes y sustituye el texto del campo abierto en la tele."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sent as you type; it replaces the text in the field open on the TV."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviado enquanto escreve e substitui o texto do campo aberto na TV."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "S'envia mentre escrius i substitueix el text del camp obert a la tele."
+          }
+        },
+        "gl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envíase mentres escribes e substitúe o texto do campo aberto na tele."
+          }
+        },
+        "eu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Idazten duzun bitartean bidaltzen da eta telebistan irekita dagoen eremuko testua ordezkatzen du."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
