@@ -15,7 +15,7 @@ struct QuienMandaApp: App {
 // MARK: - Estilo (marca Salva Tejero: "Papel" en claro, "Sótano" en oscuro)
 
 extension Color {
-    static let s100 = dyn(0xFFFFFF, 0x141110)
+    static let s100 = dyn(0xF4F1EA, 0x141110) // = ground del cristal
     static let s200 = dyn(0xF4F1EA, 0x211B17)
     static let ink = dyn(0x141110, 0xF1E6D0)
     static let muted = dyn(0x6B5A45, 0xC9B99A)
@@ -66,10 +66,11 @@ struct Icon: View {
 struct KeyStyle: ButtonStyle {
     enum Kind { case normal, ghost, tab, primary, danger, dark }
     var kind: Kind = .normal
-    var radius: CGFloat = 8
+    var radius: CGFloat = 16
     var outline: Color?
     @Environment(\.k) private var k
     @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func makeBody(configuration: Configuration) -> some View {
         let shape = RoundedRectangle(cornerRadius: radius * k)
@@ -77,43 +78,46 @@ struct KeyStyle: ButtonStyle {
             .font(.system(size: 15 * k, weight: .semibold))
             .foregroundStyle(foreground)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(background(configuration.isPressed), in: shape)
-            .overlay(shape.strokeBorder(outline ?? (kind == .normal ? .line : .clear), lineWidth: 1))
+            .modifier(Surface(kind: kind, radius: radius, outline: outline, pressed: configuration.isPressed))
             .contentShape(shape)
-            .scaleEffect(configuration.isPressed ? 0.96 : 1)
-            .brightness(configuration.isPressed && kind != .normal && kind != .ghost && kind != .tab ? -0.08 : 0)
+            .scaleEffect(configuration.isPressed ? 0.95 : 1)
             .opacity(isEnabled ? 1 : 0.35)
-            .animation(.easeOut(duration: 0.08), value: configuration.isPressed)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: configuration.isPressed)
     }
 
     private var foreground: Color {
         switch kind {
         case .primary: .onVerde
-        case .danger, .dark: .s100
+        case .danger: .onRojo
+        case .dark: .s100
         case .tab: .muted
         default: .ink
         }
     }
 
-    private func background(_ pressed: Bool) -> Color {
-        switch kind {
-        case .primary: .verde
-        case .danger: .rojo
-        case .dark: .ink
-        case .normal: pressed ? .press : .s200
-        case .ghost, .tab: pressed ? .press : .clear
+    /// Las teclas «ghost» y «tab» no tienen cristal propio: viven dentro de un contenedor de cristal.
+    private struct Surface: ViewModifier {
+        let kind: Kind, radius: CGFloat, outline: Color?, pressed: Bool
+        @Environment(\.k) private var k
+
+        func body(content: Content) -> some View {
+            switch kind {
+            case .ghost, .tab:
+                content.background(pressed ? Color.press : .clear, in: .rect(cornerRadius: radius * k))
+            case .normal: content.brandGlass(radius: radius, outline: outline)
+            case .primary: content.brandGlass(radius: radius, tint: .verde, outline: outline)
+            case .danger: content.brandGlass(radius: radius, tint: .rojo, outline: outline)
+            case .dark: content.brandGlass(radius: radius, tint: .ink, outline: outline)
+            }
         }
     }
 }
 
-/// Tarjeta crema con borde fino, la base de casi todos los bloques.
+/// Bloque de cristal, la base de casi todas las tarjetas.
 struct Card: ViewModifier {
     var radius: CGFloat = 16
-    @Environment(\.k) private var k
     func body(content: Content) -> some View {
-        content
-            .background(Color.s200, in: .rect(cornerRadius: radius * k))
-            .overlay(RoundedRectangle(cornerRadius: radius * k).strokeBorder(Color.line))
+        content.brandGlass(radius: radius)
     }
 }
 
@@ -175,7 +179,7 @@ struct RootView: View {
             let wide = geo.size.width > geo.size.height * 1.25
             let k = wide ? min(geo.size.width / 790, geo.size.height / 720, 1.6) : min(geo.size.width / 390, geo.size.height / 840, 1.6)
             ZStack {
-                Color.s100.ignoresSafeArea()
+                GlassBackground()
                 Group {
                     switch stage {
                     case .splash:
