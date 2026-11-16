@@ -116,6 +116,12 @@ final class TV {
         return Self.inputKey(from: uri)
     }
 
+    /// Escribe en el campo de texto abierto en la TV (sustituye su contenido). `setTextForm` 1.0, texto plano.
+    func setText(_ text: String) async throws {
+        if demo { return }
+        _ = try await call("appControl", "setTextForm", params: [text])
+    }
+
     /// Abre la app cuyo título contiene `name` (la lista se pide una vez por conexión).
     func openApp(_ name: String) async throws {
         if demo { return }

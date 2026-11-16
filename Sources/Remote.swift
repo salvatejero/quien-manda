@@ -15,6 +15,7 @@ struct RemoteView: View {
     @State private var input = ""
     @State private var showApps = UserDefaults.standard.string(forKey: "sheet") == "apps"
     @State private var showSettings = UserDefaults.standard.string(forKey: "sheet") == "settings"
+    @State private var showKeyboard = UserDefaults.standard.string(forKey: "sheet") == "keyboard"
     @State private var taps = 0
     @State private var queue = CommandQueue()
     @Environment(\.scenePhase) private var scenePhase
@@ -79,6 +80,12 @@ struct RemoteView: View {
                       onClose: { showApps = false })
                 .environment(\.k, k)
                 .presentationDetents([.medium, .large])
+                .presentationBackground(Color.s100)
+        }
+        .sheet(isPresented: $showKeyboard) {
+            KeyboardSheet(send: { try await tv.setText($0) }, enter: { try await tv.press(["Confirm"]) }, onClose: { showKeyboard = false })
+                .environment(\.k, k)
+                .presentationDetents([.height(230 * k)])
                 .presentationBackground(Color.s100)
         }
         .fullScreenCover(isPresented: $showSettings) {
@@ -295,7 +302,7 @@ struct RemoteView: View {
                 grid {
                     tile("Opciones", "opciones") { send("Opciones", ["Options"]) }.disabled(!tv.has(["Options"]))
                     tile("Descubrir", "descubrir") { send("Descubrir", ["Discover"]) }.disabled(!tv.has(["Discover"]))
-                    // Tile «Teclado» oculto: vuelve con #34 (setTextForm).
+                    tile("Teclado", "teclado") { showKeyboard = true }
                     tile("Web", "web") { send("Web", ["WebBrowser", "Internet"]) }.disabled(!tv.has(["WebBrowser", "Internet"]))
                     tile("Ajustes", "ajustes") { showSettings = true }
                     tile("Ayuda", "ayuda") { send("Ayuda", ["Help"]) }.disabled(!tv.has(["Help"]))
@@ -430,6 +437,59 @@ final class CommandQueue {
             await job()
             pending -= 1
         }
+    }
+}
+
+// MARK: - Teclado
+
+/// Escribe en la tele: lo tecleado sustituye el texto del campo abierto (setTextForm) y se envía con una pausa de 300 ms.
+struct KeyboardSheet: View {
+    var send: (String) async throws -> Void
+    var enter: () async throws -> Void
+    var onClose: () -> Void
+    @Environment(\.k) private var k
+    @State private var text = ""
+    @State private var error: String?
+    @State private var pending: Task<Void, Never>?
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16 * k) {
+            HStack(spacing: 4 * k) {
+                Text("Teclado").font(.display(24 * k, .bold)).frame(maxWidth: .infinity, alignment: .leading)
+                Button(action: onClose) { Icon("cerrar") }
+                    .buttonStyle(KeyStyle(kind: .ghost))
+                    .frame(width: 44 * k, height: 44 * k)
+                    .accessibilityLabel("Cerrar")
+            }
+            TextField("Escribe para la tele", text: $text)
+                .font(.system(size: 17 * k))
+                .focused($focused)
+                .submitLabel(.go)
+                .padding(14 * k)
+                .background(Color.s200, in: .rect(cornerRadius: 12 * k))
+                .overlay(RoundedRectangle(cornerRadius: 12 * k).strokeBorder(Color.line))
+                .onSubmit { Task { await perform(enter) } }
+                .onChange(of: text) {
+                    pending?.cancel()
+                    let current = text
+                    pending = Task {
+                        try? await Task.sleep(for: .milliseconds(300))
+                        guard !Task.isCancelled else { return }
+                        await perform { try await send(current) }
+                    }
+                }
+            Text(error ?? String(localized: "Se envía mientras escribes y sustituye el texto del campo abierto en la tele."))
+                .font(.system(size: 13 * k))
+                .foregroundStyle(error == nil ? Color.muted : .rojo)
+            Spacer(minLength: 0)
+        }
+        .padding(EdgeInsets(top: 16 * k, leading: 20 * k, bottom: 20 * k, trailing: 20 * k))
+        .onAppear { focused = true }
+    }
+
+    private func perform(_ action: () async throws -> Void) async {
+        do { try await action(); error = nil } catch { self.error = error.localizedDescription }
     }
 }
 
