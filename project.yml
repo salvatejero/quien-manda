@@ -3,7 +3,7 @@ options:
   bundleIdPrefix: es.julia.angela.app
   developmentLanguage: es
   deploymentTarget:
-    iOS: "18.0"
+    iOS: "17.0"
 settings:
   base:
     SWIFT_VERSION: "6.0"
