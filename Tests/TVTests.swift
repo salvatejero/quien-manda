@@ -16,6 +16,13 @@ final class TVTests: XCTestCase {
         XCTAssertTrue(TV.Failure.http(41234).errorDescription!.contains("41234"))
     }
 
+    func testRetryOnlyOn404AndLostConnection() {
+        XCTAssertTrue(TV.shouldRetry(TV.Failure.http(404)))
+        XCTAssertTrue(TV.shouldRetry(URLError(.networkConnectionLost)))
+        XCTAssertFalse(TV.shouldRetry(TV.Failure.http(401)))
+        XCTAssertFalse(TV.shouldRetry(URLError(.timedOut)))
+    }
+
     func testSoapWrapsCode() {
         XCTAssertTrue(TV.soap("ABC=").contains("<IRCCCode>ABC=</IRCCCode>"))
     }

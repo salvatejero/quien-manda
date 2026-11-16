@@ -175,17 +175,28 @@ final class TV {
         return request
     }
 
+    /// Un solo reintento con una sesión nueva: tras un rato en segundo plano la TV ya ha cerrado el keep-alive
+    /// (-1005) y, unos 30 s tras encender o apagar, contesta 404 a todo. URLSession no reintenta POST.
     @discardableResult
     private func send(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
-        let (data, response): (Data, URLResponse)
-        do { (data, response) = try await URLSession.shared.data(for: request, delegate: NoAuthRetry()) }
-        catch URLError.networkConnectionLost {
-            // Tras un rato en segundo plano la TV ya ha cerrado el keep-alive y la primera petición muere con -1005.
-            // URLSession no reintenta POST, así que se repite una vez por una conexión nueva.
-            log.notice("\(request.url?.path ?? "", privacy: .public) → -1005, reintento")
-            do { (data, response) = try await URLSession.shared.data(for: request, delegate: NoAuthRetry()) }
-            catch { throw Failure.http((error as? URLError)?.code == .cancelled ? 401 : 0) }
+        do { return try await attempt(request, in: .shared) }
+        catch let error where Self.shouldRetry(error) {
+            log.notice("\(request.url?.path ?? "", privacy: .public) → \(String(describing: error), privacy: .public), reintento")
+            let session = URLSession(configuration: .ephemeral)
+            defer { session.finishTasksAndInvalidate() }
+            return try await attempt(request, in: session)
         }
+    }
+
+    nonisolated static func shouldRetry(_ error: Error) -> Bool {
+        if case Failure.http(404) = error { return true }
+        return (error as? URLError)?.code == .networkConnectionLost
+    }
+
+    private func attempt(_ request: URLRequest, in session: URLSession) async throws -> (Data, HTTPURLResponse) {
+        let (data, response): (Data, URLResponse)
+        do { (data, response) = try await session.data(for: request, delegate: NoAuthRetry()) }
+        catch URLError.networkConnectionLost { throw URLError(.networkConnectionLost) }
         catch URLError.cancelled { throw Failure.http(401) }
         catch let error as URLError { // timeout, sin red, IP que no existe…
             log.error("\(request.url?.path ?? "", privacy: .public) → URLError \(error.code.rawValue)")
