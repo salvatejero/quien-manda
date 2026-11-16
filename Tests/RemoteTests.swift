@@ -19,18 +19,32 @@ final class RemoteTests: XCTestCase {
         XCTAssertEqual(done, Array(0..<10))
     }
 
+    private func idle(_ queue: CommandQueue) async {
+        while queue.pending > 0 { try? await Task.sleep(for: .milliseconds(5)) }
+    }
+
     func testCoalescingDropsRepeatsWhileBusy() async {
         let queue = CommandQueue()
         var done: [String] = []
-        let finished = expectation(description: "fin")
         queue.enqueue(coalescing: true) { try? await Task.sleep(for: .milliseconds(50)); done.append("a") }
         queue.enqueue(coalescing: true) { done.append("repetida") } // en vuelo → se descarta
-        queue.enqueue { done.append("b"); finished.fulfill() }    // una orden normal nunca se descarta
-        await fulfillment(of: [finished], timeout: 5)
+        queue.enqueue { done.append("b") }                          // una orden normal nunca se descarta
+        await idle(queue)
         XCTAssertEqual(done, ["a", "b"])
-        queue.enqueue(coalescing: true) { done.append("c") }      // cola libre → pasa
-        try? await Task.sleep(for: .milliseconds(50))
+        queue.enqueue(coalescing: true) { done.append("c") }        // cola libre → pasa
+        await idle(queue)
         XCTAssertEqual(done.last, "c")
+    }
+
+    func testDropPendingSkipsQueuedJobs() async {
+        let queue = CommandQueue()
+        var done: [String] = []
+        queue.enqueue { try? await Task.sleep(for: .milliseconds(30)); queue.dropPending(); done.append("falla") }
+        queue.enqueue { done.append("descartada") }
+        await idle(queue)
+        queue.enqueue { done.append("nueva") }
+        await idle(queue)
+        XCTAssertEqual(done, ["falla", "nueva"])
     }
 
     func testHdmiPort() {

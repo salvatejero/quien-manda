@@ -439,6 +439,7 @@ struct RemoteView: View {
             } catch {
                 status = String(localized: "Sin enviar · \(String(localized: label))")
                 toast = error.localizedDescription
+                if case TV.Failure.http(0) = error { queue.dropPending() }
             }
         }
     }
@@ -449,13 +450,14 @@ struct RemoteView: View {
 /// Ejecuta las órdenes una tras otra, en el orden en que se pulsaron («1» y «2» no pueden llegar como 21).
 @MainActor
 final class CommandQueue {
+    private let stream: AsyncStream<@MainActor @Sendable () async -> Void>
     private let continuation: AsyncStream<@MainActor @Sendable () async -> Void>.Continuation
-    private var pending = 0
+    private var consumer: Task<Void, Never>?
+    private(set) var pending = 0
+    private var epoch = 0
 
     init() {
-        let (stream, continuation) = AsyncStream.makeStream(of: (@MainActor @Sendable () async -> Void).self)
-        self.continuation = continuation
-        Task { for await job in stream { await job() } }
+        (stream, continuation) = AsyncStream.makeStream(of: (@MainActor @Sendable () async -> Void).self)
     }
 
     deinit { continuation.finish() }
@@ -465,11 +467,17 @@ final class CommandQueue {
     func enqueue(coalescing: Bool = false, _ job: @escaping @MainActor @Sendable () async -> Void) {
         if coalescing && pending > 0 { return }
         pending += 1
+        let queued = epoch
         continuation.yield { [self] in
-            await job()
+            if queued == epoch { await job() }
             pending -= 1
         }
+        // El consumidor arranca con la primera orden: RemoteView crea una cola en cada init y las sobrantes no cuestan nada.
+        if consumer == nil { consumer = Task { [stream] in for await job in stream { await job() } } }
     }
+
+    /// La TV no responde: lo ya encolado se salta (no tiene sentido esperar 5 s por cada pulsación).
+    func dropPending() { epoch += 1 }
 }
 
 // MARK: - Teclado
@@ -500,7 +508,12 @@ struct KeyboardSheet: View {
                 .submitLabel(.go)
                 .padding(14 * k)
                 .brandGlass(radius: 16)
-                .onSubmit { Task { await perform(enter) } }
+                .onSubmit {
+                    // Intro va después del texto pendiente (si se ha escrito algo), no antes.
+                    pending?.cancel()
+                    let current = text, typed = pending != nil
+                    Task { await perform { if typed { try await send(current) }; try await enter() } }
+                }
                 .onChange(of: text) {
                     pending?.cancel()
                     let current = text
