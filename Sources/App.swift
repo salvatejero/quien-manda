@@ -302,10 +302,11 @@ struct RootView: View {
 
     /// Espera hasta `seconds` a que Bonjour anuncie una tele que cumpla `match`.
     private func browse(seconds: Int, _ match: (FoundTV) -> Bool) async -> FoundTV? {
-        discovery.start(sweep: false)
-        defer { discovery.stop() }
+        let local = Discovery() // instancia propia: no pisa el NWBrowser de DiscoverView
+        local.start(sweep: false)
+        defer { local.stop() }
         for _ in 0..<(seconds * 5) {
-            if let found = discovery.tvs.first(where: match) { return found }
+            if let found = local.tvs.first(where: match) { return found }
             try? await Task.sleep(for: .milliseconds(200))
         }
         return nil
@@ -318,7 +319,8 @@ struct RootView: View {
     /// En segundo plano: guarda el castID de la tele conectada para poder reencontrarla si cambia de IP.
     private func learnCastID(of ip: String) {
         Task {
-            guard let id = await browse(seconds: 4, { $0.ip == ip && $0.castID != nil })?.castID else { return }
+            guard let id = await browse(seconds: 4, { $0.ip == ip && $0.castID != nil })?.castID,
+                  self.ip == ip else { return } // si mientras tanto se eligió otra tele, este id no es suyo
             castID = id
             savedRaw = SavedTV.encode(SavedTV.decode(savedRaw).map { var t = $0; if t.ip == ip { t.castID = id }; return t })
         }
