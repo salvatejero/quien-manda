@@ -200,6 +200,7 @@ No están incluidas las sesiones de diseño en claude.ai (el prototipo, el icono
 | Tele que cambia de IP: guarda el `id` de Bonjour y, si falla la conexión, la reencuentra, migra cookie y PSK y reintenta (#31) | 🟡 lógica probada en tests; sin probar con TV real |
 | Mantener pulsado repite volumen, canal y cruceta (`buttonRepeatBehavior`, sin apilar órdenes) (#33) | 🟡 lógica probada en tests; sin probar con TV real |
 | Teclado de texto: lo que escribes sustituye el campo abierto en la tele (`setTextForm` 1.0, texto plano; Intro = OK) (#34) | 🟡 interfaz probada en simulador; sin probar con TV real |
+| Teclado: si la TV contesta error 7 (Netflix, YouTube… dibujan su propio teclado; `setTextForm` solo escribe en el de Android), avisa con un mensaje claro (#36) | 🟡 causa confirmada con TV real (BRAVIA 4K UR3); mensaje y test en simulador |
 | Rediseño Liquid Glass con la marca (Papel / Sótano): `glassEffect` en iOS 26+, material + borde + sombra en iOS 17-18, color plano con «Reducir transparencia» (#32) | 🟡 capturas en simulador (iOS 26.5 y 17.5, claro y oscuro); sin probar en iPad ni en TV real |
 | Dynamic Type (hasta accesibilidad 2, textos y alturas que crecen, scroll si no cabe), repaso de VoiceOver (etiquetas, valores, VOL/CAN ajustables) y contraste WCAG del texto mudo (#35) | 🟡 capturas en simulador (iPhone Air y SE); sin probar con VoiceOver en un iPhone real |
 | Autodetección: Bonjour `_googlecast._tcp` + barrido de la subred /24 | ✅ probada con TV real (encontró "Tele") |

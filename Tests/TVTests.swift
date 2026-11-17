@@ -16,6 +16,11 @@ final class TVTests: XCTestCase {
         XCTAssertTrue(TV.Failure.http(41234).errorDescription!.contains("41234"))
     }
 
+    func testTextFormError7MeansNoAndroidKeyboard() {
+        guard case .noTextField = TV.textError(.http(7)) else { return XCTFail("7 debe ser noTextField") }
+        guard case .http(401) = TV.textError(.http(401)) else { return XCTFail("otros errores no cambian") }
+    }
+
     func testRetryOnlyOn404AndLostConnection() {
         XCTAssertTrue(TV.shouldRetry(TV.Failure.http(404)))
         XCTAssertTrue(TV.shouldRetry(URLError(.networkConnectionLost)))

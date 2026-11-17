@@ -3911,6 +3911,46 @@
         }
       }
     },
+    "Esta app usa su propio teclado. Escribe con el teclado de Android de la tele (Ajustes, búsqueda de Google…) o usa las flechas del mando." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta app usa su propio teclado. Escribe con el teclado de Android de la tele (Ajustes, búsqueda de Google…) o usa las flechas del mando."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This app uses its own keyboard. Type with the TV's Android keyboard (Settings, Google search…) or use the remote's arrows."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta app usa o seu próprio teclado. Escreve com o teclado Android da TV (Definições, pesquisa Google…) ou usa as setas do comando."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aquesta app fa servir el seu propi teclat. Escriu amb el teclat d'Android de la tele (Ajustos, cerca de Google…) o fes servir les fletxes del comandament."
+          }
+        },
+        "gl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta app usa o seu propio teclado. Escribe co teclado de Android da tele (Axustes, busca de Google…) ou usa as frechas do mando."
+          }
+        },
+        "eu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App honek bere teklatua erabiltzen du. Idatzi teleko Android teklatuarekin (Ezarpenak, Google bilaketa…) edo erabili urruneko agintearen geziak."
+          }
+        }
+      }
+    },
     "Tecla no disponible: %@" : {
       "localizations" : {
         "es" : {
