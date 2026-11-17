@@ -10,9 +10,10 @@ private let log = Logger(subsystem: "QuienManda", category: "tv")
 @MainActor @Observable
 final class TV {
     enum Failure: LocalizedError {
-        case needsPin, badPSK, http(Int), unknownKey(String), noApp(String), badResponse
+        case needsPin, badPSK, http(Int), unknownKey(String), noApp(String), badResponse, noTextField
         var errorDescription: String? {
             switch self {
+            case .noTextField: String(localized: "Esta app usa su propio teclado. Escribe con el teclado de Android de la tele (Ajustes, búsqueda de Google…) o usa las flechas del mando.")
             case .needsPin: String(localized: "Introduce el PIN que aparece en la TV")
             case .badPSK: String(localized: "La TV no acepta esa Pre-Shared Key. Déjala vacía para usar el PIN.")
             case .http(let code): Self.text(code)
@@ -119,7 +120,14 @@ final class TV {
     /// Escribe en el campo de texto abierto en la TV (sustituye su contenido). `setTextForm` 1.0, texto plano.
     func setText(_ text: String) async throws {
         if demo { return }
-        _ = try await call("appControl", "setTextForm", params: [text])
+        do { _ = try await call("appControl", "setTextForm", params: [text]) }
+        catch let error as Failure { throw Self.textError(error) }
+    }
+
+    /// Error 7 (Illegal State) en `setTextForm`: no hay teclado de Android abierto (Netflix, YouTube… dibujan el suyo).
+    nonisolated static func textError(_ error: Failure) -> Failure {
+        if case .http(7) = error { return .noTextField }
+        return error
     }
 
     /// Abre la app cuyo título contiene `name` (la lista se pide una vez por conexión).
