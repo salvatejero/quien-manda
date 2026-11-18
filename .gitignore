@@ -24,3 +24,10 @@ GoogleService-Info.plist
 .claude/settings.local.json
 
 .DS_Store
+
+# Material de la ficha del App Store: solo en local
+/resources/quien-manda/appstore/
+/resources/quien-manda/docs/
+
+# Equipo de firma local
+/Config/Signing.local.xcconfig

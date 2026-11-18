@@ -1939,6 +1939,9 @@
     "HDMI 3" : {
       "shouldTranslate" : false
     },
+    "HDMI 4" : {
+      "shouldTranslate" : false
+    },
     "Hecha por" : {
       "localizations" : {
         "es" : {
@@ -3908,6 +3911,46 @@
         }
       }
     },
+    "Esta app usa su propio teclado. Escribe con el teclado de Android de la tele (Ajustes, búsqueda de Google…) o usa las flechas del mando." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta app usa su propio teclado. Escribe con el teclado de Android de la tele (Ajustes, búsqueda de Google…) o usa las flechas del mando."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This app uses its own keyboard. Type with the TV's Android keyboard (Settings, Google search…) or use the remote's arrows."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta app usa o seu próprio teclado. Escreve com o teclado Android da TV (Definições, pesquisa Google…) ou usa as setas do comando."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aquesta app fa servir el seu propi teclat. Escriu amb el teclat d'Android de la tele (Ajustos, cerca de Google…) o fes servir les fletxes del comandament."
+          }
+        },
+        "gl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta app usa o seu propio teclado. Escribe co teclado de Android da tele (Axustes, busca de Google…) ou usa as frechas do mando."
+          }
+        },
+        "eu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App honek bere teklatua erabiltzen du. Idatzi teleko Android teklatuarekin (Ezarpenak, Google bilaketa…) edo erabili urruneko agintearen geziak."
+          }
+        }
+      }
+    },
     "Tecla no disponible: %@" : {
       "localizations" : {
         "es" : {
@@ -4424,6 +4467,286 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ez da zure telebista agertzen? Egiaztatu piztuta eta wifi sare berera konektatuta dagoela."
+          }
+        }
+      }
+    },
+    "Escribe para la tele" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escribe para la tele"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type for the TV"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escreva para a TV"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escriu per a la tele"
+          }
+        },
+        "gl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escribe para a tele"
+          }
+        },
+        "eu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Idatzi telebistarako"
+          }
+        }
+      }
+    },
+    "Se envía mientras escribes y sustituye el texto del campo abierto en la tele." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se envía mientras escribes y sustituye el texto del campo abierto en la tele."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sent as you type; it replaces the text in the field open on the TV."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviado enquanto escreve e substitui o texto do campo aberto na TV."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "S'envia mentre escrius i substitueix el text del camp obert a la tele."
+          }
+        },
+        "gl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envíase mentres escribes e substitúe o texto do campo aberto na tele."
+          }
+        },
+        "eu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Idazten duzun bitartean bidaltzen da eta telebistan irekita dagoen eremuko testua ordezkatzen du."
+          }
+        }
+      }
+    },
+    "Volumen" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volumen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volume"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volume"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volum"
+          }
+        },
+        "gl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volume"
+          }
+        },
+        "eu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bolumena"
+          }
+        }
+      }
+    },
+    "Canal" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Canal"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Channel"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Canal"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Canal"
+          }
+        },
+        "gl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Canle"
+          }
+        },
+        "eu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kanala"
+          }
+        }
+      }
+    },
+    "%lld de %lld" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld de %2$lld"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld of %2$lld"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld de %2$lld"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld de %2$lld"
+          }
+        },
+        "gl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld de %2$lld"
+          }
+        },
+        "eu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%2$lld(e)tik %1$lld"
+          }
+        }
+      }
+    },
+    "Mantén pulsado para repetir" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantén pulsado para repetir"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Touch and hold to repeat"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantenha pressionado para repetir"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantén premut per repetir"
+          }
+        },
+        "gl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantén premido para repetir"
+          }
+        },
+        "eu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eutsi sakatuta errepikatzeko"
+          }
+        }
+      }
+    },
+    "Conectando…" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conectando…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connecting…"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A ligar…"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connectant…"
+          }
+        },
+        "gl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conectando…"
+          }
+        },
+        "eu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konektatzen…"
           }
         }
       }

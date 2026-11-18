@@ -1,8 +1,11 @@
 import SwiftUI
 
 @main
-struct SonyMandoApp: App {
-    init() { Task { await Coffee.finishPending() } }
+struct QuienMandaApp: App {
+    init() {
+        SavedTV.migratePlainPSK()
+        Task { await Coffee.finishPending() }
+    }
 
     var body: some Scene {
         WindowGroup { RootView() }
@@ -12,10 +15,10 @@ struct SonyMandoApp: App {
 // MARK: - Estilo (marca Salva Tejero: "Papel" en claro, "Sótano" en oscuro)
 
 extension Color {
-    static let s100 = dyn(0xFFFFFF, 0x141110)
+    static let s100 = dyn(0xF4F1EA, 0x141110) // = ground del cristal
     static let s200 = dyn(0xF4F1EA, 0x211B17)
     static let ink = dyn(0x141110, 0xF1E6D0)
-    static let muted = dyn(0x6B5A45, 0xC9B99A)
+    static let muted = dyn(0x514435, 0xD4C7AE) // texto ≥ 4,5:1 hasta sobre las manchas del fondo (antes 6B5A45 / C9B99A, ver Tests)
     static let verde = dyn(0x35693F, 0x6FB07C)
     static let onVerde = dyn(0xFFFFFF, 0x141110)
     static let rojo = dyn(0xB3342B, 0xE0675D)
@@ -61,56 +64,63 @@ struct Icon: View {
 }
 
 struct KeyStyle: ButtonStyle {
-    enum Kind { case normal, ghost, tab, primary, danger, dark }
+    enum Kind { case normal, ghost, tab, lens, primary, danger, dark }
     var kind: Kind = .normal
-    var radius: CGFloat = 8
+    var radius: CGFloat = 16
     var outline: Color?
     @Environment(\.k) private var k
     @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func makeBody(configuration: Configuration) -> some View {
         let shape = RoundedRectangle(cornerRadius: radius * k)
         return configuration.label
-            .font(.system(size: 15 * k, weight: .semibold))
+            .scaledFont(15, .semibold)
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
             .foregroundStyle(foreground)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(background(configuration.isPressed), in: shape)
-            .overlay(shape.strokeBorder(outline ?? (kind == .normal ? .line : .clear), lineWidth: 1))
+            .modifier(Surface(kind: kind, radius: radius, outline: outline, pressed: configuration.isPressed))
             .contentShape(shape)
-            .scaleEffect(configuration.isPressed ? 0.96 : 1)
-            .brightness(configuration.isPressed && kind != .normal && kind != .ghost && kind != .tab ? -0.08 : 0)
+            .scaleEffect(configuration.isPressed ? 0.95 : 1)
             .opacity(isEnabled ? 1 : 0.35)
-            .animation(.easeOut(duration: 0.08), value: configuration.isPressed)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: configuration.isPressed)
     }
 
     private var foreground: Color {
         switch kind {
         case .primary: .onVerde
-        case .danger, .dark: .s100
+        case .danger: .onRojo
+        case .dark: .s100
         case .tab: .muted
         default: .ink
         }
     }
 
-    private func background(_ pressed: Bool) -> Color {
-        switch kind {
-        case .primary: .verde
-        case .danger: .rojo
-        case .dark: .ink
-        case .normal: pressed ? .press : .s200
-        case .ghost, .tab: pressed ? .press : .clear
+    /// Las teclas «ghost» y «tab» no tienen cristal propio: viven dentro de un contenedor de cristal.
+    private struct Surface: ViewModifier {
+        let kind: Kind, radius: CGFloat, outline: Color?, pressed: Bool
+        @Environment(\.k) private var k
+
+        func body(content: Content) -> some View {
+            switch kind {
+            case .ghost, .tab:
+                content.background(pressed ? Color.press : .clear, in: .rect(cornerRadius: radius * k))
+            case .normal: content.brandGlass(radius: radius, outline: outline)
+            case .lens: content.brandGlass(radius: radius, tint: .lens, outline: outline)
+            case .primary: content.brandGlass(radius: radius, tint: .verde, outline: outline)
+            case .danger: content.brandGlass(radius: radius, tint: .rojo, outline: outline)
+            case .dark: content.brandGlass(radius: radius, tint: .ink, outline: outline)
+            }
         }
     }
 }
 
-/// Tarjeta crema con borde fino, la base de casi todos los bloques.
+/// Bloque de cristal, la base de casi todas las tarjetas.
 struct Card: ViewModifier {
     var radius: CGFloat = 16
-    @Environment(\.k) private var k
     func body(content: Content) -> some View {
-        content
-            .background(Color.s200, in: .rect(cornerRadius: radius * k))
-            .overlay(RoundedRectangle(cornerRadius: radius * k).strokeBorder(Color.line))
+        content.brandGlass(radius: radius)
     }
 }
 
@@ -123,7 +133,7 @@ struct Toast: ViewModifier {
             .overlay(alignment: .bottom) {
                 if let message {
                     Text(message)
-                        .font(.system(size: 15 * k, weight: .medium))
+                        .scaledFont(15, .medium)
                         .foregroundStyle(Color.onVerde)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 16 * k)
@@ -155,13 +165,16 @@ struct RootView: View {
     @State private var tv = TV()
     @State private var discovery = Discovery()
     @AppStorage("ip") private var ip = ""
-    @AppStorage("psk") private var psk = ""
+    /// La PSK vive en el llavero (servicio "tv-psk"), no en UserDefaults.
+    @State private var psk = Keychain.load(UserDefaults.standard.string(forKey: "ip") ?? "", service: "tv-psk") ?? ""
     @AppStorage("name") private var name = ""
     @AppStorage("tvs") private var savedRaw = ""
     @State private var showSaved = UserDefaults.standard.string(forKey: "sheet") == "tvs"
     /// Con una TV guardada se arranca en el splash mientras reconecta.
     @State private var stage: Stage = UserDefaults.standard.string(forKey: "ip")?.isEmpty == false ? .splash : .discover
     @State private var busyIP: String?
+    /// castID de la tele elegida (si se conoce); `connect` lo guarda en la lista.
+    @State private var castID: String?
     @State private var message: String?
 
     var body: some View {
@@ -169,7 +182,7 @@ struct RootView: View {
             let wide = geo.size.width > geo.size.height * 1.25
             let k = wide ? min(geo.size.width / 790, geo.size.height / 720, 1.6) : min(geo.size.width / 390, geo.size.height / 840, 1.6)
             ZStack {
-                Color.s100.ignoresSafeArea()
+                GlassBackground()
                 Group {
                     switch stage {
                     case .splash:
@@ -178,7 +191,7 @@ struct RootView: View {
                         DiscoverView(discovery: discovery, busyIP: busyIP,
                                      onClose: tv.isConnected ? { stage = .remote } : nil,
                                      onSaved: SavedTV.decode(savedRaw).isEmpty ? nil : { showSaved = true },
-                                     onPick: { pick(ip: $0.ip, name: $0.name, psk: "") },
+                                     onPick: { pick(ip: $0.ip, name: $0.name, psk: "", castID: $0.castID) },
                                      onManual: { pick(ip: $0, name: $0, psk: $1) },
                                      onDemo: { tv.demo = true; name = String(localized: "Tele"); stage = .remote })
                     case .pin:
@@ -194,15 +207,17 @@ struct RootView: View {
             .toast($message)
             .sheet(isPresented: $showSaved) {
                 SavedTVsSheet(tvs: SavedTV.decode(savedRaw), current: tv.isConnected ? ip : nil,
-                              onPick: { showSaved = false; pick(ip: $0.ip, name: $0.name, psk: $0.psk) },
+                              onPick: { showSaved = false; pick(ip: $0.ip, name: $0.name, psk: $0.psk, castID: $0.castID) },
                               onRename: rename, onRemove: remove, onClose: { showSaved = false })
                     .environment(\.k, k)
+                    .capTypeSize()
                     .presentationDetents([.medium, .large])
-                    .presentationBackground(Color.s100)
+                    .glassSheet()
             }
             .foregroundStyle(Color.ink)
             .environment(\.k, k)
             .environment(\.wide, wide)
+            .capTypeSize()
         }
         .task { // reconecta con la última IP
             // Depuración sin TV: `-screen remote|pin|discover` (y en remote `-page 0…2`, `-sheet apps|settings`, `-fail <código>`; en discover `-sheet tvs`).
@@ -220,8 +235,9 @@ struct RootView: View {
         }
     }
 
-    private func pick(ip: String, name: String, psk: String) {
+    private func pick(ip: String, name: String, psk: String, castID: String? = nil) {
         tv.demo = false
+        self.castID = castID
         self.ip = ip.trimmingCharacters(in: .whitespaces)
         self.name = name.trimmingCharacters(in: .whitespaces)
         self.psk = psk
@@ -235,13 +251,14 @@ struct RootView: View {
     private func rename(_ saved: SavedTV, to newName: String) {
         let newName = newName.trimmingCharacters(in: .whitespaces)
         guard !newName.isEmpty else { return }
-        savedRaw = SavedTV.encode(SavedTV.decode(savedRaw).map { $0.ip == saved.ip ? SavedTV(ip: $0.ip, name: newName, psk: $0.psk) : $0 })
+        savedRaw = SavedTV.encode(SavedTV.decode(savedRaw).map { $0.ip == saved.ip ? SavedTV(ip: $0.ip, name: newName, psk: $0.psk, castID: $0.castID) : $0 })
         if saved.ip == ip { name = newName }
     }
 
     /// Borra la tele de la lista y su cookie del llavero. Si es la actual, se desconecta y deja de reconectar al abrir.
     private func remove(_ saved: SavedTV) {
         Keychain.save(nil, saved.ip)
+        Keychain.save(nil, saved.ip, service: "tv-psk")
         savedRaw = SavedTV.encode(SavedTV.decode(savedRaw).filter { $0.ip != saved.ip })
         if savedRaw == "[]" { showSaved = false }
         guard saved.ip == ip else { return }
@@ -253,16 +270,28 @@ struct RootView: View {
     }
 
     /// Devuelve el error que hay que enseñar, o nil si ya está conectada (o pide PIN).
-    private func connect(pin: String?) async -> String? {
+    /// Si la tele no responde y se conoce su castID, la busca por Bonjour por si ha cambiado de IP y reintenta una vez.
+    private func connect(pin: String?, retrying: Bool = true) async -> String? {
         tv.ip = ip
         tv.psk = psk
         do {
             try await tv.connect(pin: pin)
-            let list = SavedTV.saving(SavedTV(ip: ip, name: name.isEmpty ? ip : name, psk: psk), in: SavedTV.decode(savedRaw))
+            Keychain.save(psk.isEmpty ? nil : psk, ip, service: "tv-psk")
+            let saved = SavedTV.decode(savedRaw)
+            let known = castID ?? saved.first { $0.ip == ip }?.castID
+            let list = SavedTV.saving(SavedTV(ip: ip, name: name.isEmpty ? ip : name, psk: psk, castID: known), in: saved)
             savedRaw = SavedTV.encode(list)
             name = list[0].name
             stage = .remote
+            if known == nil { learnCastID(of: ip) }
             return nil
+        } catch TV.Failure.http(0) where retrying {
+            if let id = SavedTV.decode(savedRaw).first(where: { $0.ip == ip })?.castID,
+               let newIP = await find(castID: id, notAt: ip) {
+                move(to: newIP, castID: id)
+                return await connect(pin: pin, retrying: false)
+            }
+            return TV.Failure.http(0).localizedDescription
         } catch TV.Failure.needsPin {
             stage = .pin
             return pin == nil ? nil : String(localized: "PIN incorrecto. Revisa el código de la tele.")
@@ -270,14 +299,81 @@ struct RootView: View {
             return error.localizedDescription
         }
     }
+
+    /// Espera hasta `seconds` a que Bonjour anuncie una tele que cumpla `match`.
+    private func browse(seconds: Int, _ match: (FoundTV) -> Bool) async -> FoundTV? {
+        let local = Discovery() // instancia propia: no pisa el NWBrowser de DiscoverView
+        local.start(sweep: false)
+        defer { local.stop() }
+        for _ in 0..<(seconds * 5) {
+            if let found = local.tvs.first(where: match) { return found }
+            try? await Task.sleep(for: .milliseconds(200))
+        }
+        return nil
+    }
+
+    private func find(castID: String, notAt old: String) async -> String? {
+        await browse(seconds: 5) { $0.castID == castID && $0.ip != old }?.ip
+    }
+
+    /// En segundo plano: guarda el castID de la tele conectada para poder reencontrarla si cambia de IP.
+    private func learnCastID(of ip: String) {
+        Task {
+            guard let id = await browse(seconds: 4, { $0.ip == ip && $0.castID != nil })?.castID,
+                  self.ip == ip else { return } // si mientras tanto se eligió otra tele, este id no es suyo
+            castID = id
+            savedRaw = SavedTV.encode(SavedTV.decode(savedRaw).map { var t = $0; if t.ip == ip { t.castID = id }; return t })
+        }
+    }
+
+    /// La tele sigue siendo la misma con otra IP: se lleva la cookie y la PSK del llavero y se actualiza la lista.
+    private func move(to newIP: String, castID id: String) {
+        let old = ip
+        for service in ["tv-auth", "tv-psk"] {
+            Keychain.save(Keychain.load(old, service: service), newIP, service: service)
+            Keychain.save(nil, old, service: service)
+        }
+        savedRaw = SavedTV.encode(SavedTV.moving(SavedTV.decode(savedRaw), castID: id, to: newIP))
+        ip = newIP
+        castID = id
+    }
 }
 
-/// Teles a las que se ha conectado, la última primero. Van en JSON en "tvs"; la actual sigue en "ip", "psk" y "name".
+/// Teles a las que se ha conectado, la última primero. Van en JSON en "tvs" (sin la PSK, que va al llavero).
 struct SavedTV: Codable, Equatable, Identifiable {
     var ip: String
     var name: String
     var psk: String
+    /// `id` de Bonjour (`_googlecast._tcp`): estable aunque la IP cambie por DHCP.
+    var castID: String?
     var id: String { ip }
+
+    private enum CodingKeys: String, CodingKey { case ip, name, castID }
+
+    init(ip: String, name: String, psk: String, castID: String? = nil) {
+        self.ip = ip; self.name = name; self.psk = psk; self.castID = castID
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        ip = try c.decode(String.self, forKey: .ip)
+        name = try c.decode(String.self, forKey: .name)
+        castID = try c.decodeIfPresent(String.self, forKey: .castID)
+        psk = Keychain.load(ip, service: "tv-psk") ?? ""
+    }
+
+    /// Una vez: saca las PSK en claro de UserDefaults ("psk" y el JSON "tvs") al llavero. Idempotente.
+    static func migratePlainPSK(_ defaults: UserDefaults = .standard) {
+        struct Old: Decodable { var ip: String; var name: String; var psk: String }
+        if let raw = defaults.string(forKey: "tvs"), let old = try? JSONDecoder().decode([Old].self, from: Data(raw.utf8)) {
+            for tv in old where !tv.psk.isEmpty { Keychain.save(tv.psk, tv.ip, service: "tv-psk") }
+            defaults.set(encode(old.map { SavedTV(ip: $0.ip, name: $0.name, psk: "") }), forKey: "tvs")
+        }
+        if let psk = defaults.string(forKey: "psk") {
+            if !psk.isEmpty, let ip = defaults.string(forKey: "ip"), !ip.isEmpty { Keychain.save(psk, ip, service: "tv-psk") }
+            defaults.removeObject(forKey: "psk")
+        }
+    }
 
     static func decode(_ raw: String) -> [SavedTV] {
         (try? JSONDecoder().decode([SavedTV].self, from: Data(raw.utf8))) ?? []
@@ -290,8 +386,17 @@ struct SavedTV: Codable, Equatable, Identifiable {
     /// Pone `tv` la primera. Si ya estaba (misma IP), conserva el nombre que le dio el usuario.
     static func saving(_ tv: SavedTV, in list: [SavedTV]) -> [SavedTV] {
         var tv = tv
-        if let old = list.first(where: { $0.ip == tv.ip }) { tv.name = old.name }
+        if let old = list.first(where: { $0.ip == tv.ip }) { tv.name = old.name; tv.castID = tv.castID ?? old.castID }
         return [tv] + list.filter { $0.ip != tv.ip }
+    }
+
+    /// La tele con ese castID cambió de IP: reemplaza su entrada (misma posición) y quita cualquier otra con la IP nueva.
+    static func moving(_ list: [SavedTV], castID: String, to newIP: String) -> [SavedTV] {
+        var moved = false
+        return list.compactMap { tv in
+            if tv.castID == castID, !moved { moved = true; var t = tv; t.ip = newIP; return t }
+            return tv.ip == newIP || tv.castID == castID ? nil : tv
+        }
     }
 }
 
@@ -329,6 +434,7 @@ struct DiscoverView: View {
     /// Mando sin tele, para probar la app (y para la revisión de Apple, guía 2.1).
     var onDemo: () -> Void
     @Environment(\.k) private var k
+    @Environment(\.dynamicTypeSize) private var type
     @State private var manual = false
     @State private var manualIP = ""
     @State private var manualPSK = ""
@@ -337,15 +443,15 @@ struct DiscoverView: View {
         VStack(alignment: .leading, spacing: 16 * k) {
             HStack {
                 if let onSaved {
-                    Button(action: onSaved) { Icon("menu") }
-                        .buttonStyle(KeyStyle(kind: .ghost))
+                    Button(action: onSaved) { Icon("menu", size: 22) }
+                        .buttonStyle(KeyStyle(radius: 22))
                         .frame(width: 44 * k, height: 44 * k)
                         .accessibilityLabel("Mis teles")
                 }
                 Spacer()
                 if let onClose {
-                    Button(action: onClose) { Icon("cerrar") }
-                        .buttonStyle(KeyStyle(kind: .ghost))
+                    Button(action: onClose) { Icon("cerrar", size: 22) }
+                        .buttonStyle(KeyStyle(radius: 22))
                         .frame(width: 44 * k, height: 44 * k)
                         .accessibilityLabel("Cerrar")
                 }
@@ -353,22 +459,24 @@ struct DiscoverView: View {
             .frame(height: 44 * k)
 
             VStack(alignment: .leading, spacing: 8 * k) {
-                Text("Busca tu tele").font(.display(32 * k))
+                Text("Busca tu tele").scaledFont(32, .heavy).accessibilityAddTraits(.isHeader)
                 Text(scanText)
-                    .font(.system(size: 17 * k))
+                    .scaledFont(17)
                     .foregroundStyle(Color.muted)
             }
 
-            Radar(scanning: discovery.isScanning)
-                .frame(width: 176 * k, height: 176 * k)
-                .frame(maxWidth: .infinity)
+            if !type.isAccessibilitySize { // con texto grande no hay sitio para el adorno
+                Radar(scanning: discovery.isScanning)
+                    .frame(width: 176 * k, height: 176 * k)
+                    .frame(maxWidth: .infinity)
+            }
 
             ScrollView {
                 VStack(spacing: 8 * k) {
                     ForEach(discovery.tvs) { found in
                         Button { onPick(found) } label: { row(found) }
                             .buttonStyle(KeyStyle())
-                            .frame(height: 68 * k)
+                            .minHeight(68)
                             .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                 }
@@ -377,27 +485,28 @@ struct DiscoverView: View {
             .disabled(busyIP != nil)
 
             VStack(spacing: 12 * k) {
-                Button(action: discovery.start) {
+                Button { discovery.start() } label: {
                     Label { Text("Buscar de nuevo") } icon: { Icon("actualizar", size: 20) }
                 }
                 .buttonStyle(KeyStyle())
-                .frame(height: 52 * k)
+                .minHeight(52)
                 .disabled(discovery.isScanning)
                 HStack(spacing: 12 * k) {
                     Button("Escribir la IP") { manual = true }
                     Button("Probar sin tele", action: onDemo)
                 }
-                .buttonStyle(KeyStyle(kind: .ghost))
-                .frame(height: 44 * k)
+                .buttonStyle(KeyStyle(radius: 22))
+                .minHeight(44)
                 Text("¿No aparece tu tele? Comprueba que está encendida y conectada a la misma red Wi-Fi.")
-                    .font(.system(size: 13 * k))
+                    .scaledFont(13)
                     .foregroundStyle(Color.muted)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: .infinity)
             }
         }
+        .scrollIfNeeded()
         .padding(EdgeInsets(top: 20 * k, leading: 20 * k, bottom: 24 * k, trailing: 20 * k))
-        .onAppear(perform: discovery.start)
+        .onAppear { discovery.start() }
         .onDisappear(perform: discovery.stop)
         .alert("Escribir la IP", isPresented: $manual) {
             TextField("192.0.2.20", text: $manualIP).keyboardType(.decimalPad)
@@ -430,15 +539,15 @@ struct DiscoverView: View {
             Icon("tele", size: 22)
                 .foregroundStyle(Color.s100)
                 .frame(width: 44 * k, height: 44 * k)
-                .background(Color.ink, in: .rect(cornerRadius: 8 * k))
+                .background(Color.ink, in: .rect(cornerRadius: 14 * k))
             VStack(alignment: .leading, spacing: 0) {
-                Text(found.name).font(.system(size: 15 * k, weight: .semibold))
-                Text(found.ip).font(.system(size: 13 * k)).foregroundStyle(Color.muted)
+                Text(found.name).scaledFont(15, .semibold)
+                Text(found.ip).scaledFont(13).foregroundStyle(Color.muted)
             }
             Spacer()
-            if busyIP == found.ip { ProgressView() } else { Icon("derecha") }
+            if busyIP == found.ip { ProgressView().accessibilityLabel("Conectando…") } else { Icon("derecha") }
         }
-        .padding(.horizontal, 12 * k)
+        .padding(EdgeInsets(top: 8 * k, leading: 12 * k, bottom: 8 * k, trailing: 12 * k))
     }
 }
 
@@ -457,21 +566,22 @@ struct SavedTVsSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8 * k) {
             HStack {
-                Text("Mis teles").font(.display(24 * k, .bold)).frame(maxWidth: .infinity, alignment: .leading)
-                Button(action: onClose) { Icon("cerrar") }
-                    .buttonStyle(KeyStyle(kind: .ghost))
+                Text("Mis teles").scaledFont(24, .bold).frame(maxWidth: .infinity, alignment: .leading).accessibilityAddTraits(.isHeader)
+                Button(action: onClose) { Icon("cerrar", size: 22) }
+                    .buttonStyle(KeyStyle(radius: 22))
                     .frame(width: 44 * k, height: 44 * k)
                     .accessibilityLabel("Cerrar")
             }
             .padding(.horizontal, 20 * k)
             Text("Toca una para conectarte. Desliza a la izquierda para renombrarla u olvidarla.")
-                .font(.system(size: 13 * k))
+                .scaledFont(13)
                 .foregroundStyle(Color.muted)
                 .padding(.horizontal, 20 * k)
             List(tvs) { saved in
                 Button { onPick(saved) } label: { row(saved) }
                     .buttonStyle(KeyStyle())
-                    .frame(height: 68 * k)
+                    .minHeight(68)
+                    .accessibilityAddTraits(saved.ip == current ? .isSelected : [])
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
                     .listRowInsets(EdgeInsets(top: 4 * k, leading: 20 * k, bottom: 4 * k, trailing: 20 * k))
@@ -497,16 +607,16 @@ struct SavedTVsSheet: View {
             Icon("tele", size: 22)
                 .foregroundStyle(Color.s100)
                 .frame(width: 44 * k, height: 44 * k)
-                .background(Color.ink, in: .rect(cornerRadius: 8 * k))
+                .background(Color.ink, in: .rect(cornerRadius: 14 * k))
             VStack(alignment: .leading, spacing: 0) {
-                Text(saved.name).font(.system(size: 15 * k, weight: .semibold)).lineLimit(1)
+                Text(saved.name).scaledFont(15, .semibold).lineLimit(1)
                 Text(saved.ip == current ? "\(saved.ip) · Conectada" : "\(saved.ip)")
-                    .font(.system(size: 13 * k)).foregroundStyle(Color.muted)
+                    .scaledFont(13).foregroundStyle(Color.muted)
             }
             Spacer()
             Icon("derecha")
         }
-        .padding(.horizontal, 12 * k)
+        .padding(EdgeInsets(top: 8 * k, leading: 12 * k, bottom: 8 * k, trailing: 12 * k))
     }
 }
 
@@ -556,33 +666,32 @@ struct PinView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16 * k) {
-            Button(action: onBack) { Icon("izquierda") }
-                .buttonStyle(KeyStyle(kind: .ghost))
+            Button(action: onBack) { Icon("izquierda", size: 22) }
+                .buttonStyle(KeyStyle(radius: 22))
                 .frame(width: 44 * k, height: 44 * k)
                 .accessibilityLabel("Volver")
 
             VStack(alignment: .leading, spacing: 8 * k) {
-                Text("Introduce el PIN").font(.display(32 * k))
+                Text("Introduce el PIN").scaledFont(32, .heavy).accessibilityAddTraits(.isHeader)
                 Text("Mira la pantalla de **\(name)**: te mostrará un código de 4 dígitos.")
-                    .font(.system(size: 17 * k))
+                    .scaledFont(17)
                     .foregroundStyle(Color.muted)
             }
 
             HStack(spacing: 12 * k) {
                 ForEach(0..<4) { i in
                     Text(i < pin.count ? String(Array(pin)[i]) : "")
-                        .font(.display(32 * k))
+                        .scaledFont(32, .heavy)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 72 * k)
-                        .background(Color.s200, in: .rect(cornerRadius: 8 * k))
-                        .overlay(RoundedRectangle(cornerRadius: 8 * k).strokeBorder(boxColor(i), lineWidth: 2))
+                        .frame(minHeight: 72 * k)
+                        .brandGlass(radius: 16, outline: boxColor(i))
                 }
             }
             .accessibilityElement()
             .accessibilityLabel("PIN: \(pin.count) de 4 dígitos")
 
             Text(checking ? "Conectando…" : error ?? "Escríbelo tal y como aparece.")
-                .font(.system(size: 15 * k))
+                .scaledFont(15)
                 .foregroundStyle(error == nil ? Color.muted : .rojo)
                 .accessibilityAddTraits(.updatesFrequently)
 
@@ -593,18 +702,19 @@ struct PinView: View {
                 Color.clear
                 pad("0")
                 Button { pin = String(pin.dropLast()); error = nil } label: { Icon("borrar") }
-                    .buttonStyle(KeyStyle(kind: .ghost))
-                    .frame(height: 60 * k)
+                    .buttonStyle(KeyStyle())
+                    .minHeight(60)
                     .accessibilityLabel("Borrar")
             }
             .disabled(checking)
         }
+        .scrollIfNeeded()
         .padding(EdgeInsets(top: 20 * k, leading: 20 * k, bottom: 24 * k, trailing: 20 * k))
     }
 
-    private func boxColor(_ i: Int) -> Color {
+    private func boxColor(_ i: Int) -> Color? {
         if error != nil { return .rojo }
-        return !checking && i == pin.count ? .verde : .line
+        return !checking && i == pin.count ? .verde : nil
     }
 
     private func pad(_ d: String) -> some View {
@@ -620,10 +730,10 @@ struct PinView: View {
                 if error != nil { pin = "" }
             }
         } label: {
-            Text(d).font(.display(28 * k, .bold))
+            Text(d).scaledFont(28, .bold)
         }
         .buttonStyle(KeyStyle())
-        .frame(height: 60 * k)
+        .minHeight(60)
         .accessibilityLabel("Tecla \(d)")
     }
 }

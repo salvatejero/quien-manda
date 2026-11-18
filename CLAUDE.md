@@ -6,7 +6,7 @@ opcional. El plan completo y el análisis de la app de referencia están en `PLA
 y el estado de cada funcionalidad en `README.md`.
 
 ## Reglas del proyecto
-- **SwiftUI, iOS 18+, un solo target universal.** El iPad es la misma UI escalada
+- **SwiftUI, iOS 17+, un solo target universal.** El iPad es la misma UI escalada
   (`horizontalSizeClass == .regular` → ×1,6). No se hacen vistas aparte para iPad.
 - **Sin dependencias de terceros.** Solo `URLSession`, `Network.framework` y StoreKit 2.
   Nada de SDKs de anuncios, analítica ni crash reporting.
@@ -21,14 +21,14 @@ y el estado de cada funcionalidad en `README.md`.
 - `Sources/TV.swift`: cliente BRAVIA (JSON-RPC `/sony/*`, IRCC SOAP y autenticación por PSK o PIN).
 - `Sources/App.swift`: `RootView` (conexión) y `RemoteView` (mando).
 - `Tests/TVTests.swift`: XCTest de la lógica de formato (parseo de códigos y SOAP).
-- `project.yml`: xcodegen. **No se edita `SonyMando.xcodeproj` a mano**; tras tocar
+- `project.yml`: xcodegen. **No se edita `QuienManda.xcodeproj` a mano**; tras tocar
   `project.yml` se ejecuta `xcodegen generate`.
 
 ## Comandos
 Están en la skill `build` (`.claude/skills/build/SKILL.md`). Resumen:
 ```sh
 xcodegen generate
-xcodebuild test -project SonyMando.xcodeproj -scheme SonyMando -destination 'platform=iOS Simulator,name=iPhone Air'
+xcodebuild test -project QuienManda.xcodeproj -scheme QuienManda -destination 'platform=iOS Simulator,name=iPhone Air'
 ```
 
 ## Protocolo BRAVIA

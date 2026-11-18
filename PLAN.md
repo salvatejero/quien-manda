@@ -51,7 +51,7 @@ menos y nada de rastreo. La ficha de privacidad queda en "Datos no recopilados".
 
 ## 2. Decisiones técnicas (las más simples que funcionan)
 
-- **SwiftUI**, iOS 18+ y **un solo target universal**. El iPad usa la misma UI, con
+- **SwiftUI**, iOS 17+ y **un solo target universal**. El iPad usa la misma UI, con
   un factor de escala que se lee de `horizontalSizeClass` (botones y fuentes más
   grandes) y, en horizontal, una columna lateral con Shortcuts y Function Keys.
   No hay una app aparte para iPad.
@@ -114,3 +114,40 @@ que investigar el protocolo.
 - Nombre de la app.
 - Precios de los cafés (por ejemplo 0,99 €, 2,99 € y 4,99 €).
 - Si el Apple Watch entra en la v1 o en la v1.1.
+
+## 7. Hoja de ruta tras la 1.0 (publicada en noviembre de 2026)
+
+**La 2.0.0 incluye:** los arreglos 1.0.1 (puntos 1-7), 8 (mantener pulsado repite), 9 (teclado de texto), 14 (Dynamic Type y VoiceOver), 21 (Liquid Glass) y 22 (mínimo iOS 17). Pendiente de probar con una TV real: el `id` de Bonjour y la migración de IP (5), `setTextForm` 1.0 en texto plano (9) y la repetición (8).
+
+Sale de revisar `TV.swift`, `Discovery.swift`, `App.swift` y `Remote.swift` con la 1.0 ya en la App Store.
+Cada punto lleva su issue al empezarlo.
+
+### 1.0.1 — arreglos
+| # | Qué | Dónde | Por qué |
+|---|---|---|---|
+| 1 | Un solo reintento con sesión nueva para el 404 y el -1005 | `TV.send` | La tele da 404 a todo unos 30 s tras encender o apagar y cierra el keep-alive en segundo plano; hoy son dos arreglos distintos sobre la misma función |
+| 2 | Órdenes en serie | `RemoteView.run` | Cada pulsación lanza un `Task` suelto: «1», «2» rápido puede llegar como 21 |
+| 3 | PSK al llavero | `@AppStorage("psk")` y el JSON `tvs` | Va en claro en `UserDefaults`; la cookie del PIN ya está en el llavero |
+| 4 | Refrescar encendido y volumen al volver a primer plano | `RemoteView` (`scenePhase`) | Solo se leen al conectar |
+| 5 | Tele que cambia de IP | `SavedTV`, `Keychain` | Todo se indexa por IP; con DHCP la tele guardada se pierde y pide PIN. Guardar `cid`/MAC y reencontrarla en el barrido |
+| 6 | Entrada activa real y HDMI 4 | `inputRow` | Marca la última pulsada, no la que dice `getPlayingContentInfo` |
+| 7 | Ocultar el tile «Teclado» hasta que exista | `atajos` | Sale deshabilitado en una app publicada |
+
+### 1.1 — mejoras de lo que hay
+8. Mantener pulsado repite (volumen, canal y cruceta).
+9. Teclado de texto con `setTextForm`.
+10. Encender desde apagado total con Wake-on-LAN (el registro ya pide la función `WOL`).
+11. Entradas reales con sus nombres (`getCurrentExternalInputsStatus`).
+12. Barra de volumen con `setAudioVolume`.
+13. Pantalla siempre encendida y háptica configurable.
+14. Dynamic Type y repaso de VoiceOver (las fuentes son fijas, `13 * k`).
+
+### 1.2 y después — nuevo
+15. Siri, Centro de Control y widgets con App Intents (exige sacar `TV` a un paquete compartido).
+16. Estado de la tele en la cabecera: qué se ve, entrada y volumen.
+17. Todas las teclas de `getRemoteControllerInfo` en una rejilla reordenable.
+18. TouchPad por gestos.
+19. Apagar la pantalla, ahorro de energía, LED y reinicio (`setPowerSavingMode`, `requestReboot`).
+20. Apple Watch (depende del 15).
+21. Rediseño Liquid Glass con la marca (Papel / Sótano): maqueta en el lienzo «Quién Manda — Prototipo iPhone» antes de tocar SwiftUI; en iOS 18 se mantiene el estilo actual. Maqueta aprobada (tableros «Liquid Glass · Mando» y «Liquid Glass · Atajos y Apps»).
+22. Intentar bajar el mínimo a iOS 17. Lo único de iOS 18 visto en el código es `Mutex` (`Synchronization`) en `Discovery.resolve`, que se cambia por `OSAllocatedUnfairLock`; el resto (`@Observable`, `sensoryFeedback`, `ProductView`, `@Entry`) ya vale en iOS 17. Hay que comprobarlo compilando y en un simulador de iOS 17.

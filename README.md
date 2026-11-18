@@ -13,7 +13,7 @@ Sin anuncios, sin rastreo y sin funciones de pago. Para TVs Sony BRAVIA con Andr
 [🗺️ Plan](PLAN.md) ·
 [🤝 Contribuir](CONTRIBUTING.md)
 
-![iOS 18+](https://img.shields.io/badge/iOS%20%2F%20iPadOS-18%2B-000?logo=apple)
+![iOS 17+](https://img.shields.io/badge/iOS%20%2F%20iPadOS-17%2B-000?logo=apple)
 ![Swift 6](https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white)
 ![SwiftUI](https://img.shields.io/badge/UI-SwiftUI-0A84FF)
 ![Dependencias](https://img.shields.io/badge/dependencias-0-34C759)
@@ -121,8 +121,8 @@ Hace falta Xcode 27 o posterior y [xcodegen](https://github.com/yonaskolb/XcodeG
 
 ```sh
 xcodegen generate
-open SonyMando.xcodeproj          # o, desde la terminal:
-xcodebuild test -project SonyMando.xcodeproj -scheme SonyMando \
+open QuienManda.xcodeproj          # o, desde la terminal:
+xcodebuild test -project QuienManda.xcodeproj -scheme QuienManda \
   -destination 'platform=iOS Simulator,name=iPhone Air'
 ```
 
@@ -197,6 +197,12 @@ No están incluidas las sesiones de diseño en claude.ai (el prototipo, el icono
 | Volumen ± / silencio / canal ± / entrada | ✅ MVP |
 | Encender y apagar (`setPowerStatus`) | ✅ MVP |
 | Diseño de iPad (escalado ×1,6) | ✅ MVP |
+| Tele que cambia de IP: guarda el `id` de Bonjour y, si falla la conexión, la reencuentra, migra cookie y PSK y reintenta (#31) | 🟡 lógica probada en tests; sin probar con TV real |
+| Mantener pulsado repite volumen, canal y cruceta (`buttonRepeatBehavior`, sin apilar órdenes) (#33) | 🟡 lógica probada en tests; sin probar con TV real |
+| Teclado de texto: lo que escribes sustituye el campo abierto en la tele (`setTextForm` 1.0, texto plano; Intro = OK) (#34) | 🟡 interfaz probada en simulador; sin probar con TV real |
+| Teclado: si la TV contesta error 7 (Netflix, YouTube… dibujan su propio teclado; `setTextForm` solo escribe en el de Android), avisa con un mensaje claro (#36) | 🟡 causa confirmada con TV real (BRAVIA 4K UR3); mensaje y test en simulador |
+| Rediseño Liquid Glass con la marca (Papel / Sótano): `glassEffect` en iOS 26+, material + borde + sombra en iOS 17-18, color plano con «Reducir transparencia» (#32) | 🟡 capturas en simulador (iOS 26.5 y 17.5, claro y oscuro); sin probar en iPad ni en TV real |
+| Dynamic Type (hasta accesibilidad 2, textos y alturas que crecen, scroll si no cabe), repaso de VoiceOver (etiquetas, valores, VOL/CAN ajustables) y contraste WCAG del texto mudo (#35) | 🟡 capturas en simulador (iPhone Air y SE); sin probar con VoiceOver en un iPhone real |
 | Autodetección: Bonjour `_googlecast._tcp` + barrido de la subred /24 | ✅ probada con TV real (encontró "Tele") |
 | UI del arquetipo: páginas Mando/Números/Atajos, panel de Apps, Configuración, «Busca tu tele» y PIN, colores de la marca (claro/oscuro) | ✅ probada con TV real |
 | Panel de Apps con las apps instaladas en la TV (icono de la propia TV, ordenar arrastrando) | ✅ probado con TV real |
@@ -208,6 +214,8 @@ No están incluidas las sesiones de diseño en claude.ai (el prototipo, el icono
 | Bug: tras un rato en segundo plano las teclas fallaban («La tele no responde» / «no admite esta orden»). Se reintenta una vez si la conexión keep-alive llega muerta (-1005); fallos de red en el log (`category:tv`) | ✅ probado con TV real |
 | Reconexión directa al mando con la cookie del PIN guardada en el llavero | 🧪 falta probar con TV real |
 | Búsqueda por SSDP | ❌ descartada: necesita el entitlement de multicast y Bonjour + barrido ya lo cubren |
+| Versión 2.0: iOS 17+, Liquid Glass, arreglos de la 1.0.1, mantener pulsado, teclado de texto y accesibilidad (las filas de arriba) | 🟡 en pruebas con TV real antes de publicar |
+| Resto de la hoja de ruta (1.1 y lo nuevo): WOL, entradas reales, barra de volumen, Siri y widgets, Apple Watch… | ⏳ [PLAN.md §7](PLAN.md) |
 | TouchPad, teclado de texto, háptica configurable | ⏳ fase 2 |
 | Historial, reconexión, Force Mode, onboarding | ⏳ fase 3 |
 | Function Keys, Shortcuts de apps, estado de la TV | ⏳ fase 4 |
