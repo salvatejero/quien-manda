@@ -165,6 +165,8 @@ struct AdaptiveLabel: LabelStyle {
     func makeBody(configuration: Configuration) -> some View {
         if type.isAccessibilitySize {
             configuration.icon
+        } else if type >= .xLarge { // en filas de 4 teclas el texto grande no deja sitio al icono
+            configuration.title.lineLimit(1).minimumScaleFactor(0.7)
         } else {
             HStack(spacing: 8 * k) { configuration.icon; configuration.title }
         }

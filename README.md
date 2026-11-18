@@ -214,7 +214,8 @@ No están incluidas las sesiones de diseño en claude.ai (el prototipo, el icono
 | Bug: tras un rato en segundo plano las teclas fallaban («La tele no responde» / «no admite esta orden»). Se reintenta una vez si la conexión keep-alive llega muerta (-1005); fallos de red en el log (`category:tv`) | ✅ probado con TV real |
 | Reconexión directa al mando con la cookie del PIN guardada en el llavero | 🧪 falta probar con TV real |
 | Búsqueda por SSDP | ❌ descartada: necesita el entitlement de multicast y Bonjour + barrido ya lo cubren |
-| Hoja de ruta tras la 1.0: arreglos de la 1.0.1, mejoras de la 1.1, lo nuevo y el rediseño Liquid Glass | ⏳ [PLAN.md §7](PLAN.md) |
+| Versión 2.0: iOS 17+, Liquid Glass, arreglos de la 1.0.1, mantener pulsado, teclado de texto y accesibilidad (las filas de arriba) | 🟡 en pruebas con TV real antes de publicar |
+| Resto de la hoja de ruta (1.1 y lo nuevo): WOL, entradas reales, barra de volumen, Siri y widgets, Apple Watch… | ⏳ [PLAN.md §7](PLAN.md) |
 | TouchPad, teclado de texto, háptica configurable | ⏳ fase 2 |
 | Historial, reconexión, Force Mode, onboarding | ⏳ fase 3 |
 | Function Keys, Shortcuts de apps, estado de la TV | ⏳ fase 4 |
